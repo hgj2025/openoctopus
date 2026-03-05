@@ -12,7 +12,6 @@ import { isDangerousNetworkMode, normalizeNetworkMode } from "../agents/sandbox/
 import type { SandboxToolPolicy } from "../agents/sandbox/types.js";
 import { getBlockedBindReason } from "../agents/sandbox/validate-sandbox-security.js";
 import { resolveToolProfilePolicy } from "../agents/tool-policy.js";
-import { resolveBrowserConfig } from "../browser/config.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import type { OpenClawConfig } from "../config/config.js";
 import {
@@ -302,11 +301,7 @@ function isWebFetchEnabled(cfg: OpenClawConfig): boolean {
 }
 
 function isBrowserEnabled(cfg: OpenClawConfig): boolean {
-  try {
-    return resolveBrowserConfig(cfg.browser, cfg).enabled;
-  } catch {
-    return true;
-  }
+  return cfg.browser?.enabled ?? true;
 }
 
 function listGroupPolicyOpen(cfg: OpenClawConfig): string[] {

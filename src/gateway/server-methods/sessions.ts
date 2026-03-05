@@ -14,7 +14,6 @@ import {
   type SessionEntry,
   updateSessionStore,
 } from "../../config/sessions.js";
-import { unbindThreadBindingsBySessionKey } from "../../discord/monitor/thread-bindings.js";
 import { logVerbose } from "../../globals.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
@@ -151,12 +150,6 @@ async function emitSessionUnboundLifecycleEvent(params: {
   emitHooks?: boolean;
 }) {
   const targetKind = isSubagentSessionKey(params.targetSessionKey) ? "subagent" : "acp";
-  unbindThreadBindingsBySessionKey({
-    targetSessionKey: params.targetSessionKey,
-    targetKind,
-    reason: params.reason,
-    sendFarewell: true,
-  });
 
   if (params.emitHooks === false) {
     return;

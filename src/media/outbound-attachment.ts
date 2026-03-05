@@ -1,4 +1,4 @@
-import { loadWebMedia } from "../web/media.js";
+import { loadWebMedia } from "./load.js";
 import { saveMediaBuffer } from "./store.js";
 
 export async function resolveOutboundAttachmentFromUrl(

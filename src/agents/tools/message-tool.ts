@@ -1,5 +1,6 @@
 import { Type } from "@sinclair/typebox";
-import { BLUEBUBBLES_GROUP_ACTIONS } from "../../channels/plugins/bluebubbles-actions.js";
+// BlueBubbles channel removed: BLUEBUBBLES_GROUP_ACTIONS no longer applies
+const BLUEBUBBLES_GROUP_ACTIONS = new Set<string>();
 import {
   listChannelMessageActions,
   supportsChannelMessageButtons,

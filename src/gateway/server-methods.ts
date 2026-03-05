@@ -5,7 +5,6 @@ import { ErrorCodes, errorShape } from "./protocol/index.js";
 import { isRoleAuthorizedForMethod, parseGatewayRole } from "./role-policy.js";
 import { agentHandlers } from "./server-methods/agent.js";
 import { agentsHandlers } from "./server-methods/agents.js";
-import { browserHandlers } from "./server-methods/browser.js";
 import { channelsHandlers } from "./server-methods/channels.js";
 import { chatHandlers } from "./server-methods/chat.js";
 import { configHandlers } from "./server-methods/config.js";
@@ -25,7 +24,6 @@ import { skillsHandlers } from "./server-methods/skills.js";
 import { systemHandlers } from "./server-methods/system.js";
 import { talkHandlers } from "./server-methods/talk.js";
 import { toolsCatalogHandlers } from "./server-methods/tools-catalog.js";
-import { ttsHandlers } from "./server-methods/tts.js";
 import type { GatewayRequestHandlers, GatewayRequestOptions } from "./server-methods/types.js";
 import { updateHandlers } from "./server-methods/update.js";
 import { usageHandlers } from "./server-methods/usage.js";
@@ -80,7 +78,6 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...wizardHandlers,
   ...talkHandlers,
   ...toolsCatalogHandlers,
-  ...ttsHandlers,
   ...skillsHandlers,
   ...sessionsHandlers,
   ...systemHandlers,
@@ -91,7 +88,6 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...usageHandlers,
   ...agentHandlers,
   ...agentsHandlers,
-  ...browserHandlers,
 };
 
 export async function handleGatewayRequest(

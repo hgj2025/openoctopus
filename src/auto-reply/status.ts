@@ -26,14 +26,6 @@ import type { MediaUnderstandingDecision } from "../media-understanding/types.js
 import { listPluginCommands } from "../plugins/commands.js";
 import { resolveAgentIdFromSessionKey } from "../routing/session-key.js";
 import {
-  getTtsMaxLength,
-  getTtsProvider,
-  isSummarizationEnabled,
-  resolveTtsAutoMode,
-  resolveTtsConfig,
-  resolveTtsPrefsPath,
-} from "../tts/tts.js";
-import {
   estimateUsageCost,
   formatTokenCount as formatTokenCountShared,
   formatUsd,
@@ -385,29 +377,6 @@ const formatMediaUnderstandingLine = (decisions?: ReadonlyArray<MediaUnderstandi
   return `📎 Media: ${parts.join(" · ")}`;
 };
 
-const formatVoiceModeLine = (
-  config?: OpenClawConfig,
-  sessionEntry?: SessionEntry,
-): string | null => {
-  if (!config) {
-    return null;
-  }
-  const ttsConfig = resolveTtsConfig(config);
-  const prefsPath = resolveTtsPrefsPath(ttsConfig);
-  const autoMode = resolveTtsAutoMode({
-    config: ttsConfig,
-    prefsPath,
-    sessionAuto: sessionEntry?.ttsAuto,
-  });
-  if (autoMode === "off") {
-    return null;
-  }
-  const provider = getTtsProvider(ttsConfig, prefsPath);
-  const maxLength = getTtsMaxLength(prefsPath);
-  const summarize = isSummarizationEnabled(prefsPath) ? "on" : "off";
-  return `🔊 Voice: ${autoMode} · provider=${provider} · limit=${maxLength} · summary=${summarize}`;
-};
-
 export function buildStatusMessage(args: StatusArgs): string {
   const now = args.now ?? Date.now();
   const entry = args.sessionEntry;
@@ -661,7 +630,6 @@ export function buildStatusMessage(args: StatusArgs): string {
   const usageCostLine =
     usagePair && costLine ? `${usagePair} · ${costLine}` : (usagePair ?? costLine);
   const mediaLine = formatMediaUnderstandingLine(args.mediaDecisions);
-  const voiceLine = formatVoiceModeLine(args.config, args.sessionEntry);
 
   return [
     versionLine,
@@ -676,7 +644,6 @@ export function buildStatusMessage(args: StatusArgs): string {
     `🧵 ${sessionLine}`,
     args.subagentsLine,
     `⚙️ ${optionsLine}`,
-    voiceLine,
     activationLine,
   ]
     .filter(Boolean)

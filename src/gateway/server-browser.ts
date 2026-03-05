@@ -8,10 +8,13 @@ export async function startBrowserControlServerIfEnabled(): Promise<BrowserContr
   if (isTruthyEnvValue(process.env.OPENCLAW_SKIP_BROWSER_CONTROL_SERVER)) {
     return null;
   }
-  // Lazy import: keeps startup fast, but still bundles for the embedded
-  // gateway (bun --compile) via the static specifier path.
+  // Lazy import: supports external override via OPENCLAW_BROWSER_CONTROL_MODULE.
+  // The built-in browser server has been removed; returns null when no override is configured.
   const override = process.env.OPENCLAW_BROWSER_CONTROL_MODULE?.trim();
-  const mod = override ? await import(override) : await import("../browser/server.js");
+  if (!override) {
+    return null;
+  }
+  const mod = await import(override);
   const start =
     typeof (mod as { startBrowserControlServiceFromConfig?: unknown })
       .startBrowserControlServiceFromConfig === "function"

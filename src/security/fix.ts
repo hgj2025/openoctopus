@@ -5,7 +5,6 @@ import type { OpenClawConfig } from "../config/config.js";
 import { createConfigIO } from "../config/config.js";
 import { collectIncludePathsRecursive } from "../config/includes-scan.js";
 import { resolveConfigPath, resolveOAuthDir, resolveStateDir } from "../config/paths.js";
-import { readChannelAllowFromStore } from "../pairing/pairing-store.js";
 import { runExec } from "../process/exec.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAgentId } from "../routing/session-key.js";
 import { createIcaclsResetCommand, formatIcaclsResetCommand, type ExecFn } from "./windows-acl.js";
@@ -412,19 +411,7 @@ export async function fixSecurityFootguns(opts?: {
     const fixed = applyConfigFixes({ cfg: snap.config, env });
     changes = fixed.changes;
 
-    const whatsappStoreAllowFrom = await readChannelAllowFromStore(
-      "whatsapp",
-      env,
-      DEFAULT_ACCOUNT_ID,
-    ).catch(() => []);
-    if (whatsappStoreAllowFrom.length > 0) {
-      setWhatsAppGroupAllowFromFromStore({
-        cfg: fixed.cfg,
-        storeAllowFrom: whatsappStoreAllowFrom,
-        changes,
-        policyFlips: fixed.policyFlips,
-      });
-    }
+    // Pairing store is not available; skip WhatsApp allowFrom store recovery.
 
     if (changes.length > 0) {
       try {

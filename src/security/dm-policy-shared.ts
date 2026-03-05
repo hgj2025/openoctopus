@@ -1,7 +1,6 @@
 import { mergeDmAllowFromSources, resolveGroupAllowFromSources } from "../channels/allow-from.js";
 import { resolveControlCommandGate } from "../channels/command-gating.js";
 import type { ChannelId } from "../channels/plugins/types.js";
-import { readChannelAllowFromStore } from "../pairing/pairing-store.js";
 import { normalizeStringEntries } from "../shared/string-normalization.js";
 
 export function resolveEffectiveAllowFromLists(params: {
@@ -60,11 +59,11 @@ export async function readStoreAllowFromForDmPolicy(params: {
   if (params.shouldRead === false || params.dmPolicy === "allowlist") {
     return [];
   }
-  const readStore =
-    params.readStore ??
-    ((provider: ChannelId, accountId: string) =>
-      readChannelAllowFromStore(provider, process.env, accountId));
-  return await readStore(params.provider, params.accountId).catch(() => []);
+  if (!params.readStore) {
+    // Pairing store is not available; return empty allowlist.
+    return [];
+  }
+  return await params.readStore(params.provider, params.accountId).catch(() => []);
 }
 
 export function resolveDmGroupAccessDecision(params: {

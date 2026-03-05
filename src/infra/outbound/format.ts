@@ -1,6 +1,6 @@
 import { getChannelPlugin } from "../../channels/plugins/index.js";
 import type { ChannelId } from "../../channels/plugins/types.js";
-import { getChatChannelMeta, normalizeChatChannelId } from "../../channels/registry.js";
+import { normalizeChatChannelId } from "../../channels/registry.js";
 import type { OutboundDeliveryResult } from "./deliver.js";
 
 export type OutboundDeliveryJson = {
@@ -34,11 +34,10 @@ const resolveChannelLabel = (channel: string) => {
   if (pluginLabel) {
     return pluginLabel;
   }
+  // normalizeChatChannelId returns non-null only for built-in channels;
+  // since all channels are now plugins, fall back to the raw channel name.
   const normalized = normalizeChatChannelId(channel);
-  if (normalized) {
-    return getChatChannelMeta(normalized).label;
-  }
-  return channel;
+  return normalized ?? channel;
 };
 
 export function formatOutboundDeliverySummary(

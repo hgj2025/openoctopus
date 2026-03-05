@@ -4,7 +4,6 @@ import {
   listChannelPluginCatalogEntries,
 } from "../channels/plugins/catalog.js";
 import {
-  getChatChannelMeta,
   listChatChannels,
   normalizeChatChannelId,
 } from "../channels/registry.js";
@@ -13,7 +12,6 @@ import {
   type PluginManifestRegistry,
 } from "../plugins/manifest-registry.js";
 import { isRecord } from "../utils.js";
-import { hasAnyWhatsAppAuth } from "../web/accounts.js";
 import type { OpenClawConfig } from "./config.js";
 import { ensurePluginAllowlisted } from "./plugins-allowlist.js";
 
@@ -34,12 +32,7 @@ const CHANNEL_PLUGIN_IDS = Array.from(
   ]),
 );
 
-const PROVIDER_PLUGIN_IDS: Array<{ pluginId: string; providerId: string }> = [
-  { pluginId: "google-gemini-cli-auth", providerId: "google-gemini-cli" },
-  { pluginId: "qwen-portal-auth", providerId: "qwen-portal" },
-  { pluginId: "copilot-proxy", providerId: "copilot-proxy" },
-  { pluginId: "minimax-portal-auth", providerId: "minimax-portal" },
-];
+const PROVIDER_PLUGIN_IDS: Array<{ pluginId: string; providerId: string }> = [];
 
 function hasNonEmptyString(value: unknown): boolean {
   return typeof value === "string" && value.trim().length > 0;
@@ -83,36 +76,7 @@ type StructuredChannelConfigSpec = {
   accountStringKeys?: readonly string[];
 };
 
-const STRUCTURED_CHANNEL_CONFIG_SPECS: Record<string, StructuredChannelConfigSpec> = {
-  telegram: {
-    envAny: ["TELEGRAM_BOT_TOKEN"],
-    stringKeys: ["botToken", "tokenFile"],
-    accountStringKeys: ["botToken", "tokenFile"],
-  },
-  discord: {
-    envAny: ["DISCORD_BOT_TOKEN"],
-    stringKeys: ["token"],
-    accountStringKeys: ["token"],
-  },
-  irc: {
-    envAll: ["IRC_HOST", "IRC_NICK"],
-    stringKeys: ["host", "nick"],
-    accountStringKeys: ["host", "nick"],
-  },
-  slack: {
-    envAny: ["SLACK_BOT_TOKEN", "SLACK_APP_TOKEN", "SLACK_USER_TOKEN"],
-    stringKeys: ["botToken", "appToken", "userToken"],
-    accountStringKeys: ["botToken", "appToken", "userToken"],
-  },
-  signal: {
-    stringKeys: ["account", "httpUrl", "httpHost", "cliPath"],
-    numberKeys: ["httpPort"],
-    accountStringKeys: ["account", "httpUrl", "httpHost", "cliPath"],
-  },
-  imessage: {
-    stringKeys: ["cliPath"],
-  },
-};
+const STRUCTURED_CHANNEL_CONFIG_SPECS: Record<string, StructuredChannelConfigSpec> = {};
 
 function envHasAnyKeys(env: NodeJS.ProcessEnv, keys: readonly string[]): boolean {
   for (const key of keys) {
@@ -169,17 +133,6 @@ function isStructuredChannelConfigured(
   return recordHasKeys(entry);
 }
 
-function isWhatsAppConfigured(cfg: OpenClawConfig): boolean {
-  if (hasAnyWhatsAppAuth(cfg)) {
-    return true;
-  }
-  const entry = resolveChannelConfig(cfg, "whatsapp");
-  if (!entry) {
-    return false;
-  }
-  return recordHasKeys(entry);
-}
-
 function isGenericChannelConfigured(cfg: OpenClawConfig, channelId: string): boolean {
   const entry = resolveChannelConfig(cfg, channelId);
   return recordHasKeys(entry);
@@ -190,9 +143,6 @@ export function isChannelConfigured(
   channelId: string,
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  if (channelId === "whatsapp") {
-    return isWhatsAppConfigured(cfg);
-  }
   const spec = STRUCTURED_CHANNEL_CONFIG_SPECS[channelId];
   if (spec) {
     return isStructuredChannelConfigured(cfg, channelId, env, spec);
@@ -391,10 +341,6 @@ function isPluginDenied(cfg: OpenClawConfig, pluginId: string): boolean {
 }
 
 function resolvePreferredOverIds(pluginId: string): string[] {
-  const normalized = normalizeChatChannelId(pluginId);
-  if (normalized) {
-    return getChatChannelMeta(normalized).preferOver ?? [];
-  }
   const catalogEntry = getChannelPluginCatalogEntry(pluginId);
   return catalogEntry?.meta.preferOver ?? [];
 }
@@ -459,12 +405,7 @@ function registerPluginEntry(cfg: OpenClawConfig, pluginId: string): OpenClawCon
 }
 
 function formatAutoEnableChange(entry: PluginEnableChange): string {
-  let reason = entry.reason.trim();
-  const channelId = normalizeChatChannelId(entry.pluginId);
-  if (channelId) {
-    const label = getChatChannelMeta(channelId).label;
-    reason = reason.replace(new RegExp(`^${channelId}\\b`, "i"), label);
-  }
+  const reason = entry.reason.trim();
   return `${reason}, enabled automatically.`;
 }
 

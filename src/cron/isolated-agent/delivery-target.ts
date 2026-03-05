@@ -11,10 +11,8 @@ import {
   resolveOutboundTarget,
   resolveSessionDeliveryTarget,
 } from "../../infra/outbound/targets.js";
-import { readChannelAllowFromStoreSync } from "../../pairing/pairing-store.js";
 import { buildChannelAccountBindings } from "../../routing/bindings.js";
 import { normalizeAccountId, normalizeAgentId } from "../../routing/session-key.js";
-import { resolveWhatsAppAccount } from "../../web/accounts.js";
 import { normalizeWhatsAppTarget } from "../../whatsapp/normalize.js";
 
 export type DeliveryTargetResolution =
@@ -158,17 +156,9 @@ export async function resolveDeliveryTarget(
 
   let allowFromOverride: string[] | undefined;
   if (channel === "whatsapp") {
-    const resolvedAccountId = normalizeAccountId(accountId);
-    const configuredAllowFromRaw =
-      resolveWhatsAppAccount({ cfg, accountId: resolvedAccountId }).allowFrom ?? [];
-    const configuredAllowFrom = configuredAllowFromRaw
-      .map((entry) => String(entry).trim())
-      .filter((entry) => entry && entry !== "*")
-      .map((entry) => normalizeWhatsAppTarget(entry))
-      .filter((entry): entry is string => Boolean(entry));
-    const storeAllowFrom = readChannelAllowFromStoreSync("whatsapp", process.env, resolvedAccountId)
-      .map((entry) => normalizeWhatsAppTarget(entry))
-      .filter((entry): entry is string => Boolean(entry));
+    // WhatsApp account config and pairing store are not available; use empty allowFrom.
+    const configuredAllowFrom: string[] = [];
+    const storeAllowFrom: string[] = [];
     allowFromOverride = [...new Set([...configuredAllowFrom, ...storeAllowFrom])];
 
     if (mode === "implicit" && allowFromOverride.length > 0) {

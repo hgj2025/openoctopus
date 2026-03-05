@@ -1,13 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import { resolveBrowserConfig } from "../browser/config.js";
 import { loadConfig } from "../config/config.js";
 import { GatewayClient } from "../gateway/client.js";
 import { loadOrCreateDeviceIdentity } from "../infra/device-identity.js";
 import type { SkillBinTrustEntry } from "../infra/exec-approvals.js";
 import { getMachineDisplayName } from "../infra/machine-name.js";
 import {
-  NODE_BROWSER_PROXY_COMMAND,
   NODE_EXEC_APPROVALS_COMMANDS,
   NODE_SYSTEM_RUN_COMMANDS,
 } from "../infra/node-commands.js";
@@ -161,9 +159,6 @@ export async function runNodeHost(opts: NodeHostRunOptions): Promise<void> {
   await saveNodeHostConfig(config);
 
   const cfg = loadConfig();
-  const resolvedBrowser = resolveBrowserConfig(cfg.browser, cfg);
-  const browserProxyEnabled =
-    cfg.nodeHost?.browserProxy?.enabled !== false && resolvedBrowser.enabled;
   const isRemoteMode = cfg.gateway?.mode === "remote";
   const token =
     process.env.OPENCLAW_GATEWAY_TOKEN?.trim() ||
@@ -192,11 +187,10 @@ export async function runNodeHost(opts: NodeHostRunOptions): Promise<void> {
     mode: GATEWAY_CLIENT_MODES.NODE,
     role: "node",
     scopes: [],
-    caps: ["system", ...(browserProxyEnabled ? ["browser"] : [])],
+    caps: ["system"],
     commands: [
       ...NODE_SYSTEM_RUN_COMMANDS,
       ...NODE_EXEC_APPROVALS_COMMANDS,
-      ...(browserProxyEnabled ? [NODE_BROWSER_PROXY_COMMAND] : []),
     ],
     pathEnv,
     permissions: undefined,

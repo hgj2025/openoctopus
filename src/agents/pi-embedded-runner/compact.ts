@@ -16,10 +16,6 @@ import { generateSecureToken } from "../../infra/secure-random.js";
 import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { type enqueueCommand, enqueueCommandInLane } from "../../process/command-queue.js";
 import { isCronSessionKey, isSubagentSessionKey } from "../../routing/session-key.js";
-import { resolveSignalReactionLevel } from "../../signal/reaction-level.js";
-import { resolveTelegramInlineButtonsScope } from "../../telegram/inline-buttons.js";
-import { resolveTelegramReactionLevel } from "../../telegram/reaction-level.js";
-import { buildTtsSystemPromptHint } from "../../tts/tts.js";
 import { resolveUserPath } from "../../utils.js";
 import { normalizeMessageChannel } from "../../utils/message-channel.js";
 import { isReasoningTagProvider } from "../../utils/provider-utils.js";
@@ -396,44 +392,6 @@ export async function compactEmbeddedPiSessionDirect(
           accountId: params.agentAccountId,
         }) ?? [])
       : undefined;
-    if (runtimeChannel === "telegram" && params.config) {
-      const inlineButtonsScope = resolveTelegramInlineButtonsScope({
-        cfg: params.config,
-        accountId: params.agentAccountId ?? undefined,
-      });
-      if (inlineButtonsScope !== "off") {
-        if (!runtimeCapabilities) {
-          runtimeCapabilities = [];
-        }
-        if (
-          !runtimeCapabilities.some((cap) => String(cap).trim().toLowerCase() === "inlinebuttons")
-        ) {
-          runtimeCapabilities.push("inlineButtons");
-        }
-      }
-    }
-    const reactionGuidance =
-      runtimeChannel && params.config
-        ? (() => {
-            if (runtimeChannel === "telegram") {
-              const resolved = resolveTelegramReactionLevel({
-                cfg: params.config,
-                accountId: params.agentAccountId ?? undefined,
-              });
-              const level = resolved.agentReactionGuidance;
-              return level ? { level, channel: "Telegram" } : undefined;
-            }
-            if (runtimeChannel === "signal") {
-              const resolved = resolveSignalReactionLevel({
-                cfg: params.config,
-                accountId: params.agentAccountId ?? undefined,
-              });
-              const level = resolved.agentReactionGuidance;
-              return level ? { level, channel: "Signal" } : undefined;
-            }
-            return undefined;
-          })()
-        : undefined;
     // Resolve channel-specific message actions for system prompt
     const channelActions = runtimeChannel
       ? listChannelSupportedActions({
@@ -480,7 +438,6 @@ export async function compactEmbeddedPiSessionDirect(
       cwd: process.cwd(),
       moduleUrl: import.meta.url,
     });
-    const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
     const ownerDisplay = resolveOwnerDisplaySetting(params.config);
     const appendPrompt = buildEmbeddedSystemPrompt({
       workspaceDir: effectiveWorkspace,
@@ -496,11 +453,9 @@ export async function compactEmbeddedPiSessionDirect(
         : undefined,
       skillsPrompt,
       docsPath: docsPath ?? undefined,
-      ttsHint,
       promptMode,
       acpEnabled: params.config?.acp?.enabled !== false,
       runtimeInfo,
-      reactionGuidance,
       messageToolHints,
       sandboxInfo,
       tools,

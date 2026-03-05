@@ -191,35 +191,12 @@ const entries: SubCliEntry[] = [
     },
   },
   {
-    name: "qr",
-    description: "Generate iOS pairing QR/setup code",
-    hasSubcommands: false,
-    register: async (program) => {
-      const mod = await import("../qr-cli.js");
-      mod.registerQrCli(program);
-    },
-  },
-  {
     name: "clawbot",
     description: "Legacy clawbot command aliases",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../clawbot-cli.js");
       mod.registerClawbotCli(program);
-    },
-  },
-  {
-    name: "pairing",
-    description: "Secure DM pairing (approve inbound requests)",
-    hasSubcommands: true,
-    register: async (program) => {
-      // Initialize plugins before registering pairing CLI.
-      // The pairing CLI calls listPairingChannels() at registration time,
-      // which requires the plugin registry to be populated with channel plugins.
-      const { registerPluginCliCommands } = await import("../../plugins/cli.js");
-      registerPluginCliCommands(program, await loadConfig());
-      const mod = await import("../pairing-cli.js");
-      mod.registerPairingCli(program);
     },
   },
   {

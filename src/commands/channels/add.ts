@@ -6,8 +6,6 @@ import type { ChannelId, ChannelSetupInput } from "../../channels/plugins/types.
 import { writeConfigFile, type OpenClawConfig } from "../../config/config.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../routing/session-key.js";
 import { defaultRuntime, type RuntimeEnv } from "../../runtime.js";
-import { resolveTelegramAccount } from "../../telegram/accounts.js";
-import { deleteTelegramUpdateOffset } from "../../telegram/update-offset-store.js";
 import { createClackPrompter } from "../../wizard/clack-prompter.js";
 import { applyAgentBindings, describeBinding } from "../agents.bindings.js";
 import { buildAgentSummaries } from "../agents.config.js";
@@ -279,11 +277,6 @@ export async function channelsAddCommand(
     return;
   }
 
-  const previousTelegramToken =
-    channel === "telegram"
-      ? resolveTelegramAccount({ cfg: nextConfig, accountId }).token.trim()
-      : "";
-
   if (accountId !== DEFAULT_ACCOUNT_ID) {
     nextConfig = moveSingleAccountChannelSectionToDefaultAccount({
       cfg: nextConfig,
@@ -297,14 +290,6 @@ export async function channelsAddCommand(
     accountId,
     input,
   });
-
-  if (channel === "telegram") {
-    const nextTelegramToken = resolveTelegramAccount({ cfg: nextConfig, accountId }).token.trim();
-    if (previousTelegramToken !== nextTelegramToken) {
-      // Clear stale polling offsets after Telegram token rotation.
-      await deleteTelegramUpdateOffset({ accountId });
-    }
-  }
 
   await writeConfigFile(nextConfig);
   runtime.log(`Added ${channelLabel(channel)} account "${accountId}".`);

@@ -1,15 +1,29 @@
 import type { ChannelId } from "../channels/plugins/types.js";
-import type { PluginRuntime } from "../plugins/runtime/types.js";
 import { normalizeAccountId } from "../routing/session-key.js";
 
-type PairingApi = PluginRuntime["channel"]["pairing"];
+// Pairing API shape used by channel plugins.
+type PairingApi = {
+  readAllowFromStore: (params: { channel: ChannelId; accountId: string }) => Promise<string[]>;
+  upsertPairingRequest: (params: {
+    channel: ChannelId;
+    accountId: string;
+    [key: string]: unknown;
+  }) => Promise<unknown>;
+};
+
+type PluginRuntimeWithPairing = {
+  channel: {
+    pairing: PairingApi;
+  };
+};
+
 type ScopedUpsertInput = Omit<
   Parameters<PairingApi["upsertPairingRequest"]>[0],
   "channel" | "accountId"
 >;
 
 export function createScopedPairingAccess(params: {
-  core: PluginRuntime;
+  core: PluginRuntimeWithPairing;
   channel: ChannelId;
   accountId: string;
 }) {

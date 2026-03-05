@@ -259,10 +259,11 @@ function validateConfigObjectWithPluginsBase(
     }
   }
 
-  const heartbeatChannelIds = new Set<string>();
-  for (const channelId of CHANNEL_IDS) {
-    heartbeatChannelIds.add(channelId.toLowerCase());
-  }
+  // CHANNEL_IDS is empty (all channels are now plugins); heartbeatChannelIds is always empty here.
+  // Plugin channel IDs are validated separately via the registry.
+  const heartbeatChannelIds = new Set<string>(
+    (CHANNEL_IDS as readonly string[]).map((id) => id.toLowerCase()),
+  );
 
   const validateHeartbeatTarget = (target: string | undefined, path: string) => {
     if (typeof target !== "string") {
