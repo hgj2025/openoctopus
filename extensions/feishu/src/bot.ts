@@ -889,21 +889,28 @@ export async function handleFeishuMessage(params: {
 
     if (!isGroup && dmPolicy !== "open" && !dmAllowed) {
       if (dmPolicy === "pairing") {
-        const { code, created } = await pairing.upsertPairingRequest({
+        const result = await pairing.upsertPairingRequest({
           id: ctx.senderOpenId,
           meta: { name: ctx.senderName },
         });
-        if (created) {
+        const { code, created } = result as { code: string | null; created: boolean };
+        if (created && code) {
           log(`feishu[${account.accountId}]: pairing request sender=${ctx.senderOpenId}`);
+          const pairingText = [
+            "OpenClaw: access not configured.",
+            "",
+            `Your Feishu user id: ${ctx.senderOpenId}`,
+            "",
+            `Pairing code: ${code}`,
+            "",
+            "Ask the bot owner to approve with:",
+            `openclaw pairing approve feishu ${code}`,
+          ].join("\n");
           try {
             await sendMessageFeishu({
               cfg,
               to: `user:${ctx.senderOpenId}`,
-              text: core.channel.pairing.buildPairingReply({
-                channel: "feishu",
-                idLine: `Your Feishu user id: ${ctx.senderOpenId}`,
-                code,
-              }),
+              text: pairingText,
               accountId: account.accountId,
             });
           } catch (err) {

@@ -23,28 +23,39 @@ type ScopedUpsertInput = Omit<
 >;
 
 export function createScopedPairingAccess(params: {
-  core: PluginRuntimeWithPairing;
+  core: PluginRuntimeWithPairing | { channel: Record<string, unknown> };
   channel: ChannelId;
   accountId: string;
 }) {
   const resolvedAccountId = normalizeAccountId(params.accountId);
+  // channel.pairing may be absent if the runtime no longer includes it;
+  // degrade gracefully so callers receive empty lists rather than crashing.
+  const pairingApi: PairingApi | undefined = (
+    params.core as Partial<PluginRuntimeWithPairing>
+  ).channel?.pairing;
   return {
     accountId: resolvedAccountId,
-    readAllowFromStore: () =>
-      params.core.channel.pairing.readAllowFromStore({
+    readAllowFromStore: (): Promise<string[]> => {
+      if (!pairingApi) return Promise.resolve([]);
+      return pairingApi.readAllowFromStore({
         channel: params.channel,
         accountId: resolvedAccountId,
-      }),
-    readStoreForDmPolicy: (provider: ChannelId, accountId: string) =>
-      params.core.channel.pairing.readAllowFromStore({
+      });
+    },
+    readStoreForDmPolicy: (provider: ChannelId, accountId: string): Promise<string[]> => {
+      if (!pairingApi) return Promise.resolve([]);
+      return pairingApi.readAllowFromStore({
         channel: provider,
         accountId: normalizeAccountId(accountId),
-      }),
-    upsertPairingRequest: (input: ScopedUpsertInput) =>
-      params.core.channel.pairing.upsertPairingRequest({
+      });
+    },
+    upsertPairingRequest: (input: ScopedUpsertInput): Promise<unknown> => {
+      if (!pairingApi) return Promise.resolve({ code: null, created: false });
+      return pairingApi.upsertPairingRequest({
         channel: params.channel,
         accountId: resolvedAccountId,
         ...input,
-      }),
+      });
+    },
   };
 }
