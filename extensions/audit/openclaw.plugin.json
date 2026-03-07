@@ -1,0 +1,218 @@
+{
+  "id": "audit",
+  "name": "Enterprise Audit",
+  "description": "Structured audit log and tool interception for enterprise deployments.",
+  "uiHints": {
+    "enabled": {
+      "label": "Enable Audit Plugin",
+      "help": "Master switch for the audit plugin."
+    },
+    "sinks.file.enabled": {
+      "label": "File Sink",
+      "help": "Write audit events to a local JSONL file."
+    },
+    "sinks.file.path": {
+      "label": "File Path",
+      "help": "Path to the audit JSONL file. Supports ~ expansion."
+    },
+    "sinks.file.retentionDays": {
+      "label": "Retention Days",
+      "help": "Days to keep audit log files. 0 = keep forever."
+    },
+    "sinks.webhook.enabled": {
+      "label": "Webhook Sink",
+      "help": "Forward audit events to an HTTP endpoint."
+    },
+    "sinks.webhook.url": {
+      "label": "Webhook URL",
+      "help": "HTTP POST endpoint that receives batched audit events."
+    },
+    "sinks.mcp.enabled": {
+      "label": "MCP Sink",
+      "help": "Forward audit events to an MCP server tool."
+    },
+    "sinks.mcp.transport.kind": {
+      "label": "MCP Transport",
+      "help": "Use 'mcporter' (CLI-based, recommended) or 'stdio' (direct process)."
+    },
+    "sinks.mcp.transport.serverName": {
+      "label": "mcporter Server Name",
+      "help": "Server name as configured in your mcporter config (transport.kind=mcporter only)."
+    },
+    "sinks.mcp.transport.command": {
+      "label": "MCP Server Command",
+      "help": "Executable to spawn as MCP server (transport.kind=stdio only)."
+    },
+    "sinks.mcp.toolName": {
+      "label": "MCP Tool Name",
+      "help": "Name of the MCP tool that accepts audit log batches."
+    },
+    "interception.enabled": {
+      "label": "Enable Tool Interception",
+      "help": "Block or audit tool calls based on interception rules."
+    },
+    "interception.useDefaultRules": {
+      "label": "Use Default Enterprise Rules",
+      "help": "Apply built-in baseline rules (blocks perm remove, git push main, etc.)."
+    },
+    "capture.userMessageContent": {
+      "label": "Capture User Message Content",
+      "help": "Store raw user message text in audit events. Off by default for privacy."
+    },
+    "capture.toolResults": {
+      "label": "Capture Tool Results",
+      "help": "Store tool return values in audit events. Off by default."
+    },
+    "redact.enabled": {
+      "label": "Enable Redaction",
+      "help": "Automatically redact secrets and tokens from logged parameters."
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": false
+      },
+      "sinks": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "file": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": { "type": "boolean", "default": true },
+              "path": { "type": "string", "default": "~/.openclaw/audit/audit.jsonl" },
+              "maxFileBytes": { "type": "number", "default": 209715200 },
+              "retentionDays": { "type": "number", "default": 90 }
+            }
+          },
+          "webhook": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": { "type": "boolean", "default": false },
+              "url": { "type": "string" },
+              "headers": { "type": "object" },
+              "timeoutMs": { "type": "number", "default": 5000 },
+              "maxRetries": { "type": "number", "default": 3 },
+              "maxQueueSize": { "type": "number", "default": 1000 },
+              "batchIntervalMs": { "type": "number", "default": 500 },
+              "batchMaxSize": { "type": "number", "default": 20 }
+            }
+          },
+          "mcp": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": { "type": "boolean", "default": false },
+              "transport": {
+                "type": "object",
+                "properties": {
+                  "kind": { "type": "string", "enum": ["mcporter", "stdio"] },
+                  "serverName": { "type": "string" },
+                  "startDaemon": { "type": "boolean", "default": true },
+                  "command": { "type": "string" },
+                  "args": { "type": "array", "items": { "type": "string" } },
+                  "env": { "type": "object" },
+                  "initTimeoutMs": { "type": "number", "default": 10000 },
+                  "timeoutMs": { "type": "number", "default": 10000 }
+                },
+                "required": ["kind"]
+              },
+              "toolName": { "type": "string", "default": "submit_audit_log" },
+              "maxRetries": { "type": "number", "default": 3 },
+              "maxQueueSize": { "type": "number", "default": 500 },
+              "batchIntervalMs": { "type": "number", "default": 2000 },
+              "batchMaxSize": { "type": "number", "default": 50 }
+            }
+          }
+        }
+      },
+      "capture": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userMessageContent": { "type": "boolean", "default": false },
+          "llmPromptContent": { "type": "boolean", "default": false },
+          "toolResults": { "type": "boolean", "default": false }
+        }
+      },
+      "redact": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": { "type": "boolean", "default": true },
+          "additionalPatterns": { "type": "array", "items": { "type": "string" } },
+          "paramFields": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": ["token", "secret", "password", "passwd", "key", "appSecret", "encryptKey"]
+          }
+        }
+      },
+      "interception": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": { "type": "boolean", "default": false },
+          "useDefaultRules": { "type": "boolean", "default": true },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "match", "action"],
+              "properties": {
+                "id": { "type": "string" },
+                "description": { "type": "string" },
+                "match": {
+                  "type": "object",
+                  "properties": {
+                    "tools": { "type": "array", "items": { "type": "string" } },
+                    "toolPattern": { "type": "string" },
+                    "params": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["field"],
+                        "properties": {
+                          "field": { "type": "string" },
+                          "contains": { "type": "string" },
+                          "matches": { "type": "string" }
+                        }
+                      }
+                    },
+                    "agentIds": { "type": "array", "items": { "type": "string" } },
+                    "channels": { "type": "array", "items": { "type": "string" } }
+                  }
+                },
+                "action": { "type": "string", "enum": ["allow", "block", "audit_only"] },
+                "blockMessage": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "eventFilter": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "user.message",
+            "llm.request",
+            "llm.response",
+            "tool.call",
+            "tool.blocked",
+            "tool.result",
+            "session.start",
+            "session.end",
+            "access.denied"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@openclaw/audit",
+  "version": "2026.3.6",
+  "private": true,
+  "description": "Enterprise structured audit log and tool interception plugin",
+  "type": "module",
+  "dependencies": {
+    "zod": "3.24.2"
+  },
+  "openclaw": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}
