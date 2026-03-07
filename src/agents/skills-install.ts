@@ -22,6 +22,8 @@ export type SkillInstallRequest = {
   installId: string;
   timeoutMs?: number;
   config?: OpenClawConfig;
+  /** Called when dangerous code patterns are found; return false to abort installation */
+  onDangerousConfirm?: (warnings: string[]) => Promise<boolean>;
 };
 
 export type SkillInstallResult = {
@@ -31,6 +33,8 @@ export type SkillInstallResult = {
   stderr: string;
   code: number | null;
   warnings?: string[];
+  /** True when installation was aborted due to dangerous patterns rejection */
+  blocked?: boolean;
 };
 
 function withWarnings(result: SkillInstallResult, warnings: string[]): SkillInstallResult {
@@ -55,7 +59,9 @@ function formatScanFindingDetail(
   return `${finding.message} (${filePath}:${finding.line})`;
 }
 
-async function collectSkillInstallScanWarnings(entry: SkillEntry): Promise<string[]> {
+type ScanWarningsResult = { warnings: string[]; hasCritical: boolean };
+
+async function collectSkillInstallScanWarnings(entry: SkillEntry): Promise<ScanWarningsResult> {
   const warnings: string[] = [];
   const skillName = entry.skill.name;
   const skillDir = path.resolve(entry.skill.baseDir);
@@ -70,6 +76,7 @@ async function collectSkillInstallScanWarnings(entry: SkillEntry): Promise<strin
       warnings.push(
         `WARNING: Skill "${skillName}" contains dangerous code patterns: ${criticalDetails}`,
       );
+      return { warnings, hasCritical: true };
     } else if (summary.warn > 0) {
       warnings.push(
         `Skill "${skillName}" has ${summary.warn} suspicious code pattern(s). Run "openclaw security audit --deep" for details.`,
@@ -81,7 +88,7 @@ async function collectSkillInstallScanWarnings(entry: SkillEntry): Promise<strin
     );
   }
 
-  return warnings;
+  return { warnings, hasCritical: false };
 }
 
 function resolveInstallId(spec: SkillInstallSpec, index: number): string {
@@ -405,7 +412,23 @@ export async function installSkill(params: SkillInstallRequest): Promise<SkillIn
   }
 
   const spec = findInstallSpec(entry, params.installId);
-  const warnings = await collectSkillInstallScanWarnings(entry);
+  const { warnings, hasCritical } = await collectSkillInstallScanWarnings(entry);
+
+  if (hasCritical && params.onDangerousConfirm) {
+    const confirmed = await params.onDangerousConfirm(warnings);
+    if (!confirmed) {
+      return {
+        ok: false,
+        blocked: true,
+        message: "Installation aborted: dangerous patterns detected and rejected by user",
+        stdout: "",
+        stderr: "",
+        code: null,
+        warnings,
+      };
+    }
+  }
+
   if (!spec) {
     return withWarnings(
       {

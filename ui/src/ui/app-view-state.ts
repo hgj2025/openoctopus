@@ -1,3 +1,4 @@
+import type { AuditEntry } from "./controllers/audit-logs.ts";
 import type { EventLogEntry } from "./app-events.ts";
 import type { CompactionStatus, FallbackStatus } from "./app-tool-stream.ts";
 import type { CronFieldErrors } from "./controllers/cron.ts";
@@ -258,6 +259,16 @@ export type AppViewState = {
   logsLimit: number;
   logsMaxBytes: number;
   logsAtBottom: boolean;
+  auditLoading: boolean;
+  auditError: string | null;
+  auditDate: string;
+  auditDates: string[];
+  auditFile: string | null;
+  auditEntries: AuditEntry[];
+  auditCursor: number | null;
+  auditTruncated: boolean;
+  auditFilterText: string;
+  auditKindFilters: Record<string, boolean>;
   updateAvailable: import("./types.js").UpdateAvailable | null;
   client: GatewayBrowserClient | null;
   refreshSessionsAfterChat: Set<string>;
@@ -306,6 +317,7 @@ export type AppViewState = {
   handleLoadSkills: () => Promise<void>;
   handleLoadDebug: () => Promise<void>;
   handleLoadLogs: () => Promise<void>;
+  handleLoadAuditLogs: (opts?: { reset?: boolean; date?: string }) => Promise<void>;
   handleDebugCall: () => Promise<void>;
   handleRunUpdate: () => Promise<void>;
   setPassword: (next: string) => void;

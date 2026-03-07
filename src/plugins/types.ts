@@ -320,7 +320,8 @@ export type PluginHookName =
   | "subagent_spawned"
   | "subagent_ended"
   | "gateway_start"
-  | "gateway_stop";
+  | "gateway_stop"
+  | "skill_install";
 
 // Agent context shared across agent hooks
 export type PluginHookAgentContext = {
@@ -654,6 +655,18 @@ export type PluginHookGatewayStopEvent = {
   reason?: string;
 };
 
+// skill_install hook
+export type PluginHookSkillInstallEvent = {
+  skillName: string;
+  installId: string;
+  phase: "before" | "after";
+  ok?: boolean;
+  warnings?: string[];
+  hasCritical?: boolean;
+  blocked?: boolean;
+  durationMs?: number;
+};
+
 // Hook handler types mapped by hook name
 export type PluginHookHandlerMap = {
   before_model_resolve: (
@@ -751,6 +764,10 @@ export type PluginHookHandlerMap = {
   gateway_stop: (
     event: PluginHookGatewayStopEvent,
     ctx: PluginHookGatewayContext,
+  ) => Promise<void> | void;
+  skill_install: (
+    event: PluginHookSkillInstallEvent,
+    ctx: PluginHookAgentContext,
   ) => Promise<void> | void;
 };
 

@@ -1,6 +1,8 @@
 import { refreshChat } from "./app-chat.ts";
 import {
+  startAuditPolling,
   startLogsPolling,
+  stopAuditPolling,
   stopLogsPolling,
   startDebugPolling,
   stopDebugPolling,
@@ -21,6 +23,7 @@ import {
 import { loadDebug } from "./controllers/debug.ts";
 import { loadDevices } from "./controllers/devices.ts";
 import { loadExecApprovals } from "./controllers/exec-approvals.ts";
+import { loadAuditLogs } from "./controllers/audit-logs.ts";
 import { loadLogs } from "./controllers/logs.ts";
 import { loadNodes } from "./controllers/nodes.ts";
 import { loadPresence } from "./controllers/presence.ts";
@@ -59,6 +62,9 @@ type SettingsHost = {
   themeMedia: MediaQueryList | null;
   themeMediaHandler: ((event: MediaQueryListEvent) => void) | null;
   pendingGatewayUrl?: string | null;
+  logsPollInterval?: number | null;
+  debugPollInterval?: number | null;
+  auditPollInterval?: number | null;
 };
 
 export function applySettings(host: SettingsHost, next: UiSettings) {
@@ -165,6 +171,11 @@ export function setTab(host: SettingsHost, next: Tab) {
   } else {
     stopDebugPolling(host as unknown as Parameters<typeof stopDebugPolling>[0]);
   }
+  if (next === "audit") {
+    startAuditPolling(host as unknown as Parameters<typeof startAuditPolling>[0]);
+  } else {
+    stopAuditPolling(host as unknown as Parameters<typeof stopAuditPolling>[0]);
+  }
   void refreshActiveTab(host);
   syncUrlWithTab(host, next, false);
 }
@@ -250,6 +261,9 @@ export async function refreshActiveTab(host: SettingsHost) {
     host.logsAtBottom = true;
     await loadLogs(host as unknown as OpenClawApp, { reset: true });
     scheduleLogsScroll(host as unknown as Parameters<typeof scheduleLogsScroll>[0], true);
+  }
+  if (host.tab === "audit") {
+    await loadAuditLogs(host as unknown as OpenClawApp, { reset: true });
   }
 }
 

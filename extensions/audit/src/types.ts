@@ -16,7 +16,8 @@ export type AuditEventKind =
   | "tool.result"
   | "session.start"
   | "session.end"
-  | "access.denied";
+  | "access.denied"
+  | "skill.install";
 
 export type AuditEventBase = {
   /** Globally unique event ID (crypto.randomUUID) */
@@ -140,6 +141,19 @@ export type AccessDeniedEvent = AuditEventBase & {
   chatId?: string;
 };
 
+/** A skill install was attempted (phase=before) or completed (phase=after) */
+export type SkillInstallEvent = AuditEventBase & {
+  kind: "skill.install";
+  skillName: string;
+  installId: string;
+  phase: "before" | "after";
+  ok?: boolean;
+  warnings: string[];
+  hasCritical: boolean;
+  blocked: boolean;
+  durationMs?: number;
+};
+
 export type AuditEvent =
   | UserMessageEvent
   | LlmRequestEvent
@@ -149,7 +163,8 @@ export type AuditEvent =
   | ToolResultEvent
   | SessionStartEvent
   | SessionEndEvent
-  | AccessDeniedEvent;
+  | AccessDeniedEvent
+  | SkillInstallEvent;
 
 // ============================================================
 // Sink abstraction

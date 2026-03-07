@@ -10,6 +10,7 @@ import { listAgentWorkspaceDirs } from "../../agents/workspace-dirs.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import { loadConfig, writeConfigFile } from "../../config/config.js";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
+import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
 import { normalizeSecretInput } from "../../utils/normalize-secret-input.js";
 import {
@@ -130,6 +131,17 @@ export const skillsHandlers: GatewayRequestHandlers = {
     };
     const cfg = loadConfig();
     const workspaceDirRaw = resolveAgentWorkspaceDir(cfg, resolveDefaultAgentId(cfg));
+    const hookRunner = getGlobalHookRunner();
+    const hookCtx = {};
+
+    if (hookRunner?.hasHooks("skill_install")) {
+      void hookRunner.runSkillInstall(
+        { skillName: p.name, installId: p.installId, phase: "before" },
+        hookCtx,
+      );
+    }
+
+    const installStart = Date.now();
     const result = await installSkill({
       workspaceDir: workspaceDirRaw,
       skillName: p.name,
@@ -137,6 +149,24 @@ export const skillsHandlers: GatewayRequestHandlers = {
       timeoutMs: p.timeoutMs,
       config: cfg,
     });
+    const durationMs = Date.now() - installStart;
+
+    if (hookRunner?.hasHooks("skill_install")) {
+      void hookRunner.runSkillInstall(
+        {
+          skillName: p.name,
+          installId: p.installId,
+          phase: "after",
+          ok: result.ok,
+          warnings: result.warnings ?? [],
+          hasCritical: result.warnings?.some((w) => w.startsWith("WARNING:")) ?? false,
+          blocked: result.blocked ?? false,
+          durationMs,
+        },
+        hookCtx,
+      );
+    }
+
     respond(
       result.ok,
       result,

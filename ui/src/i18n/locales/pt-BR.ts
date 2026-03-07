@@ -36,6 +36,7 @@ export const pt_BR: TranslationMap = {
     config: "Config",
     debug: "Debug",
     logs: "Logs",
+    audit: "Auditoria",
   },
   subtitles: {
     agents: "Gerenciar espaços de trabalho, ferramentas e identidades de agentes.",
@@ -51,6 +52,7 @@ export const pt_BR: TranslationMap = {
     config: "Editar ~/.openclaw/openclaw.json com segurança.",
     debug: "Snapshots do gateway, eventos e chamadas RPC manuais.",
     logs: "Acompanhamento ao vivo dos logs de arquivo do gateway.",
+    audit: "Log de eventos de auditoria de segurança estruturado (JSONL).",
   },
   overview: {
     access: {

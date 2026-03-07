@@ -212,12 +212,37 @@ export const AuditConfigSchema = z
           "session.start",
           "session.end",
           "access.denied",
+          "skill.install",
         ]),
       )
+      .optional(),
+
+    /**
+     * Command security policy for bash tool calls.
+     * Evaluated before custom interception rules.
+     */
+    commandPolicy: z
+      .object({
+        enabled: z.boolean().default(false),
+        /**
+         * - whitelist: only allow commands in allowedCommands
+         * - blacklist: block commands in blockedCommands
+         * - audit_only: log but do not block
+         */
+        mode: z.enum(["whitelist", "blacklist", "audit_only"]).default("blacklist"),
+        /** Commands allowed in whitelist mode */
+        allowedCommands: z.array(z.string()).optional(),
+        /** Commands blocked in blacklist mode */
+        blockedCommands: z.array(z.string()).optional(),
+        /** Message returned to the LLM when a command is blocked */
+        blockMessage: z.string().optional(),
+      })
+      .strict()
       .optional(),
   })
   .strict();
 
 export type AuditConfig = z.infer<typeof AuditConfigSchema>;
+export type AuditCommandPolicyConfig = NonNullable<AuditConfig["commandPolicy"]>;
 export type AuditMcpSinkConfig = z.infer<typeof McpSinkSchema>;
 export type AuditMcpTransportConfig = z.infer<typeof McpTransportSchema>;

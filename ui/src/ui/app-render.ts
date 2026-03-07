@@ -37,6 +37,7 @@ import {
   updateCronJobsFilter,
   updateCronRunsFilter,
 } from "./controllers/cron.ts";
+import { loadAuditLogs } from "./controllers/audit-logs.ts";
 import { loadDebug, callDebugMethod } from "./controllers/debug.ts";
 import {
   approveDevicePairing,
@@ -74,6 +75,7 @@ import { renderDebug } from "./views/debug.ts";
 import { renderExecApprovalPrompt } from "./views/exec-approval.ts";
 import { renderGatewayUrlConfirmation } from "./views/gateway-url-confirmation.ts";
 import { renderInstances } from "./views/instances.ts";
+import { renderAuditLogs } from "./views/audit-logs.ts";
 import { renderLogs } from "./views/logs.ts";
 import { renderNodes } from "./views/nodes.ts";
 import { renderOverview } from "./views/overview.ts";
@@ -1131,6 +1133,29 @@ export function renderApp(state: AppViewState) {
                 onRefresh: () => loadLogs(state, { reset: true }),
                 onExport: (lines, label) => state.exportLogs(lines, label),
                 onScroll: (event) => state.handleLogsScroll(event),
+              })
+            : nothing
+        }
+
+        ${
+          state.tab === "audit"
+            ? renderAuditLogs({
+                loading: state.auditLoading,
+                error: state.auditError,
+                file: state.auditFile,
+                entries: state.auditEntries,
+                filterText: state.auditFilterText,
+                kindFilters: state.auditKindFilters,
+                truncated: state.auditTruncated,
+                date: state.auditDate,
+                availableDates: state.auditDates,
+                onFilterTextChange: (next) => (state.auditFilterText = next),
+                onKindToggle: (kind, enabled) => {
+                  state.auditKindFilters = { ...state.auditKindFilters, [kind]: enabled };
+                },
+                onDateChange: (date) => void loadAuditLogs(state, { reset: true, date }),
+                onRefresh: () => void loadAuditLogs(state, { reset: true }),
+                onExport: (lines) => state.exportLogs(lines, "audit"),
               })
             : nothing
         }

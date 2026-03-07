@@ -36,6 +36,7 @@ import type {
   PluginHookSessionContext,
   PluginHookSessionEndEvent,
   PluginHookSessionStartEvent,
+  PluginHookSkillInstallEvent,
   PluginHookSubagentContext,
   PluginHookSubagentDeliveryTargetEvent,
   PluginHookSubagentDeliveryTargetResult,
@@ -83,6 +84,7 @@ export type {
   PluginHookSessionContext,
   PluginHookSessionStartEvent,
   PluginHookSessionEndEvent,
+  PluginHookSkillInstallEvent,
   PluginHookSubagentContext,
   PluginHookSubagentDeliveryTargetEvent,
   PluginHookSubagentDeliveryTargetResult,
@@ -670,6 +672,22 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
   }
 
   // =========================================================================
+  // Skill Hooks
+  // =========================================================================
+
+  /**
+   * Run skill_install hook.
+   * Fires before and after skill installation to support audit and safety gating.
+   * Runs in parallel (fire-and-forget).
+   */
+  async function runSkillInstall(
+    event: PluginHookSkillInstallEvent,
+    ctx: PluginHookAgentContext,
+  ): Promise<void> {
+    return runVoidHook("skill_install", event, ctx);
+  }
+
+  // =========================================================================
   // Gateway Hooks
   // =========================================================================
 
@@ -734,6 +752,8 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     runToolResultPersist,
     // Message write hooks
     runBeforeMessageWrite,
+    // Skill hooks
+    runSkillInstall,
     // Session hooks
     runSessionStart,
     runSessionEnd,

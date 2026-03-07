@@ -1,4 +1,5 @@
 import type { OpenClawApp } from "./app.ts";
+import { loadAuditLogs } from "./controllers/audit-logs.ts";
 import { loadDebug } from "./controllers/debug.ts";
 import { loadLogs } from "./controllers/logs.ts";
 import { loadNodes } from "./controllers/nodes.ts";
@@ -7,6 +8,7 @@ type PollingHost = {
   nodesPollInterval: number | null;
   logsPollInterval: number | null;
   debugPollInterval: number | null;
+  auditPollInterval: number | null;
   tab: string;
 };
 
@@ -66,4 +68,24 @@ export function stopDebugPolling(host: PollingHost) {
   }
   clearInterval(host.debugPollInterval);
   host.debugPollInterval = null;
+}
+
+export function startAuditPolling(host: PollingHost) {
+  if (host.auditPollInterval != null) {
+    return;
+  }
+  host.auditPollInterval = window.setInterval(() => {
+    if (host.tab !== "audit") {
+      return;
+    }
+    void loadAuditLogs(host as unknown as OpenClawApp, { quiet: true });
+  }, 3000);
+}
+
+export function stopAuditPolling(host: PollingHost) {
+  if (host.auditPollInterval == null) {
+    return;
+  }
+  clearInterval(host.auditPollInterval);
+  host.auditPollInterval = null;
 }

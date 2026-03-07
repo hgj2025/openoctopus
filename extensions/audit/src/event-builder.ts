@@ -6,6 +6,7 @@ import type {
   LlmResponseEvent,
   SessionEndEvent,
   SessionStartEvent,
+  SkillInstallEvent,
   ToolBlockedEvent,
   ToolCallEvent,
   ToolResultEvent,
@@ -21,6 +22,7 @@ import type {
   PluginHookMessageReceivedEvent,
   PluginHookSessionEndEvent,
   PluginHookSessionStartEvent,
+  PluginHookSkillInstallEvent,
   PluginHookAfterToolCallEvent,
   PluginHookBeforeToolCallEvent,
   PluginHookToolContext,
@@ -197,6 +199,24 @@ export function buildSessionEndEvent(
     kind: "session.end",
     sessionId: event.sessionId,
     messageCount: event.messageCount,
+    durationMs: event.durationMs,
+  };
+}
+
+export function buildSkillInstallEvent(
+  event: PluginHookSkillInstallEvent,
+  ctx: PluginHookAgentContext,
+): SkillInstallEvent {
+  return {
+    ...makeBase("skill.install", ctx),
+    kind: "skill.install",
+    skillName: event.skillName,
+    installId: event.installId,
+    phase: event.phase,
+    ok: event.ok,
+    warnings: event.warnings ?? [],
+    hasCritical: event.hasCritical ?? false,
+    blocked: event.blocked ?? false,
     durationMs: event.durationMs,
   };
 }

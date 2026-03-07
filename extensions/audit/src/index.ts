@@ -5,6 +5,7 @@ import {
   buildLlmResponseEvent,
   buildSessionEndEvent,
   buildSessionStartEvent,
+  buildSkillInstallEvent,
   buildToolBlockedEvent,
   buildToolCallEvent,
   buildToolResultEvent,
@@ -134,6 +135,7 @@ const auditPlugin: OpenClawPluginDefinition = {
     const engine = new InterceptionEngine({
       useDefaultRules: cfg.interception?.useDefaultRules !== false,
       customRules: cfg.interception?.rules,
+      commandPolicy: cfg.commandPolicy,
     });
 
     function emit(event: AuditEvent): void {
@@ -202,7 +204,12 @@ const auditPlugin: OpenClawPluginDefinition = {
       emit(buildSessionEndEvent(event, ctx));
     });
 
-    // ⑦ Graceful shutdown — flush, seal file, close MCP connection
+    // ⑦ Skill install audit
+    api.on("skill_install", (event, ctx) => {
+      emit(buildSkillInstallEvent(event, ctx));
+    });
+
+    // ⑧ Graceful shutdown — flush, seal file, close MCP connection
     api.on("gateway_stop", async () => {
       try {
         await sink.close?.();

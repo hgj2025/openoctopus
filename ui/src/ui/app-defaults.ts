@@ -10,6 +10,19 @@ export const DEFAULT_LOG_LEVEL_FILTERS: Record<LogLevel, boolean> = {
   fatal: true,
 };
 
+export const DEFAULT_AUDIT_KIND_FILTERS: Record<string, boolean> = {
+  "user.message": true,
+  "tool.call": true,
+  "tool.blocked": true,
+  "tool.result": true,
+  "skill.install": true,
+  "llm.request": true,
+  "llm.response": true,
+  "session.start": true,
+  "session.end": true,
+  "access.denied": true,
+};
+
 export const DEFAULT_CRON_FORM: CronFormState = {
   name: "",
   description: "",
