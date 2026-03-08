@@ -150,7 +150,7 @@ export const AuditConfigSchema = z
     capture: z
       .object({
         /** If true, record raw user message text in user.message events */
-        userMessageContent: z.boolean().default(false),
+        userMessageContent: z.boolean().default(true),
         /** If true, record full prompt in llm.request events */
         llmPromptContent: z.boolean().default(false),
         /** If true, record tool return values in tool.result events */
@@ -161,7 +161,7 @@ export const AuditConfigSchema = z
 
     redact: z
       .object({
-        enabled: z.boolean().default(true),
+        enabled: z.boolean().default(false),
         /**
          * Additional redaction patterns (regex strings) appended to the core defaults.
          * Core patterns already cover: API keys, tokens, passwords, PEM blocks, common prefixes.

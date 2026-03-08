@@ -212,6 +212,21 @@
             "access.denied"
           ]
         }
+      },
+      "commandPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": { "type": "boolean", "default": false },
+          "mode": {
+            "type": "string",
+            "enum": ["whitelist", "blacklist", "audit_only"],
+            "default": "blacklist"
+          },
+          "allowedCommands": { "type": "array", "items": { "type": "string" } },
+          "blockedCommands": { "type": "array", "items": { "type": "string" } },
+          "blockMessage": { "type": "string" }
+        }
       }
     }
   }

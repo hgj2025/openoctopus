@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/session-guard",
+  "version": "2026.3.8",
+  "private": true,
+  "description": "Per-session code modification authorization, command audit, and file access control",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}

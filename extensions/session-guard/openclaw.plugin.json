@@ -1,0 +1,19 @@
+{
+  "id": "session-guard",
+  "name": "Session Guard",
+  "description": "Per-session code modification authorization, command audit, and session summary.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "authTtlHours": {
+        "type": "number",
+        "default": 4
+      },
+      "summaryDir": {
+        "type": "string",
+        "default": "~/.openclaw/session-summaries"
+      }
+    }
+  }
+}

@@ -169,8 +169,11 @@ export function loadPluginManifestRegistry(params: {
   for (const candidate of candidates) {
     const manifestRes = loadPluginManifest(candidate.rootDir);
     if (!manifestRes.ok) {
+      // Downgrade to warning so a missing/incomplete plugin manifest does not
+      // crash the gateway at startup — the plugin is skipped and the user sees
+      // a warning in the logs instead of an unrecoverable crash loop.
       diagnostics.push({
-        level: "error",
+        level: "warn",
         message: manifestRes.error,
         source: manifestRes.manifestPath,
       });

@@ -19,13 +19,18 @@ export type UiSettings = {
 
 export function loadSettings(): UiSettings {
   const defaultUrl = (() => {
+    // In Vite dev mode, VITE_GATEWAY_URL overrides the default so the UI
+    // connects to the real gateway port (18789) instead of the Vite dev server
+    // port (5173).
+    const devUrl = (import.meta.env.VITE_GATEWAY_URL as string | undefined)?.trim();
+    if (devUrl) return devUrl;
     const proto = location.protocol === "https:" ? "wss" : "ws";
     return `${proto}://${location.host}`;
   })();
 
   const defaults: UiSettings = {
     gatewayUrl: defaultUrl,
-    token: "",
+    token: (import.meta.env.VITE_GATEWAY_TOKEN as string | undefined)?.trim() ?? "",
     sessionKey: "main",
     lastActiveSessionKey: "main",
     theme: "system",
@@ -47,7 +52,10 @@ export function loadSettings(): UiSettings {
         typeof parsed.gatewayUrl === "string" && parsed.gatewayUrl.trim()
           ? parsed.gatewayUrl.trim()
           : defaults.gatewayUrl,
-      token: typeof parsed.token === "string" ? parsed.token : defaults.token,
+      token:
+        typeof parsed.token === "string" && parsed.token.trim()
+          ? parsed.token
+          : defaults.token,
       sessionKey:
         typeof parsed.sessionKey === "string" && parsed.sessionKey.trim()
           ? parsed.sessionKey.trim()

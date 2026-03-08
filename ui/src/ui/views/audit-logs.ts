@@ -62,10 +62,12 @@ export type AuditLogsProps = {
 
 export function renderAuditLogs(props: AuditLogsProps) {
   const needle = props.filterText.trim().toLowerCase();
-  const filtered = props.entries.filter((entry) => {
-    if (entry.kind && !props.kindFilters[entry.kind]) return false;
-    return matchesFilter(entry, needle);
-  });
+  const filtered = props.entries
+    .filter((entry) => {
+      if (entry.kind && !props.kindFilters[entry.kind]) return false;
+      return matchesFilter(entry, needle);
+    })
+    .reverse();
 
   const hasKindFilters = ALL_KINDS.some((k) => !props.kindFilters[k]);
   const exportLabel = needle || hasKindFilters ? "filtered" : "all";
@@ -145,23 +147,44 @@ export function renderAuditLogs(props: AuditLogsProps) {
         ${filtered.length === 0
           ? html`<div class="muted" style="padding: 12px;">No audit events.</div>`
           : filtered.map(
-              (entry) => html`
-                <div class="log-row audit-row">
-                  <div class="log-time mono">${formatTime(entry.isoTime)}</div>
-                  <div
-                    class="log-level mono"
-                    style="color: ${KIND_COLOR[entry.kind ?? ""] ?? "#888"}; min-width: 110px; font-size: 11px;"
-                  >
-                    ${entry.kind ?? "?"}
+              (entry) => {
+                // Skip unparseable blank lines
+                if (!entry.kind && !entry.isoTime && !entry.summary) return nothing;
+                const sub = entry.agentId ?? entry.userId ?? "";
+                const subDisplay = sub.length > 16 ? `${sub.slice(0, 14)}…` : sub;
+                const color = KIND_COLOR[entry.kind ?? ""] ?? "#888";
+                const isMessage = entry.kind === "user.message";
+                const isTool = entry.kind === "tool.call" || entry.kind === "tool.blocked";
+                const hasFullContent = isMessage && typeof entry.content === "string" && entry.content.length > 0;
+                const hasParams = isTool && typeof entry.paramsJson === "string";
+                return html`
+                <details class="audit-row-wrap" style="border-bottom: 1px solid var(--border, #2a2a2a);">
+                  <summary class="log-row audit-row" style="list-style: none; cursor: pointer; padding: 5px 0; display: flex; align-items: center; gap: 8px; min-height: 28px;">
+                    <div class="log-time mono" style="min-width: 64px; flex-shrink: 0; font-size: 11px; opacity: 0.7;">${formatTime(entry.isoTime)}</div>
+                    <div style="display: flex; align-items: center; gap: 4px; min-width: 180px; max-width: 180px; flex-shrink: 0; overflow: hidden;">
+                      <span
+                        class="mono"
+                        style="color: ${color}; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1;"
+                        title=${entry.kind ?? "?"}
+                      >${entry.kind ?? "?"}</span>
+                      ${subDisplay ? html`<span class="mono" style="font-size: 10px; opacity: 0.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1;" title=${sub}>${subDisplay}</span>` : nothing}
+                    </div>
+                    <div class="log-message mono" style="font-size: 12px; opacity: 0.9; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title=${entry.summary ?? ""}>
+                      ${entry.summary ?? entry.raw}
+                    </div>
+                  </summary>
+                  <div style="padding: 6px 8px 10px 8px; background: var(--bg2, #1a1a1a); font-size: 12px;">
+                    ${hasFullContent
+                      ? html`<div style="margin-bottom: 6px;"><span style="opacity:0.5; font-size: 11px;">message</span><pre class="mono" style="margin: 4px 0 0; white-space: pre-wrap; word-break: break-word; color: #c8e6c9;">${entry.content}</pre></div>`
+                      : nothing}
+                    ${hasParams
+                      ? html`<div style="margin-bottom: 6px;"><span style="opacity:0.5; font-size: 11px;">params</span><pre class="mono" style="margin: 4px 0 0; white-space: pre-wrap; word-break: break-word; color: #bbdefb;">${entry.paramsJson}</pre></div>`
+                      : nothing}
+                    <div><span style="opacity:0.5; font-size: 11px;">raw</span><pre class="mono" style="margin: 4px 0 0; white-space: pre-wrap; word-break: break-word; opacity: 0.6; font-size: 11px;">${entry.raw}</pre></div>
                   </div>
-                  <div class="log-subsystem mono" style="min-width: 80px; font-size: 11px; opacity: 0.7;">
-                    ${entry.agentId ?? entry.userId ?? ""}
-                  </div>
-                  <div class="log-message mono" style="font-size: 12px; opacity: 0.9;">
-                    ${entry.summary ?? entry.raw}
-                  </div>
-                </div>
-              `,
+                </details>
+              `;
+              },
             )}
       </div>
       ${filtered.length > 0
