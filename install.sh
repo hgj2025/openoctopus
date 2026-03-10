@@ -12,7 +12,7 @@ set -euo pipefail
 
 # ── 配置 ──────────────────────────────────────────────────────────────────────
 # 修改这里指向你自己的 git 仓库
-GIT_REPO="${OPENOCTOPUS_GIT_REPO:-}"
+GIT_REPO="${OPENOCTOPUS_GIT_REPO:-https://github.com/hgj2025/openoctopus.git}"
 DEFAULT_DIR="${HOME}/openoctopus"
 BIN_DIR="${HOME}/.local/bin"
 BIN_NAME="openclaw"
@@ -79,7 +79,8 @@ fi
 
 # ── 检查 git 仓库配置 ─────────────────────────────────────────────────────────
 if [ -z "$GIT_REPO" ]; then
-  die "未配置 git 仓库。请设置 OPENOCTOPUS_GIT_REPO 环境变量，或编辑 install.sh 顶部的 GIT_REPO 变量"
+  die "未配置 git 仓库。请设置 OPENOCTOPUS_GIT_REPO 环境变量，或编辑 install.sh 顶部的 GIT_REPO 变量
+示例: OPENOCTOPUS_GIT_REPO=https://github.com/hgj2025/openoctopus.git bash install.sh"
 fi
 
 # ── 工具检测 ──────────────────────────────────────────────────────────────────
