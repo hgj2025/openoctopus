@@ -6,3 +6,8 @@ contact_links:
   - name: Support
     url: https://discord.gg/clawd
     about: "Get help from the OpenClaw community on Discord in #help."
+plugins:
+  allow:
+    - feishu
+    - audit
+    - session-guard
