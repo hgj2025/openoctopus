@@ -3,6 +3,7 @@ export type { ChannelAdapter, SessionCardState, ProgressLogEntry } from "./chann
 export type { CodingSession } from "./session-manager.js";
 
 export { ClaudeCodeCliProvider } from "./provider/claude-code-cli.js";
+export { AidenCliProvider } from "./provider/aiden-cli.js";
 export { PTYGenericProvider } from "./provider/pty-generic.js";
 export { resolveProvider } from "./provider/registry.js";
 

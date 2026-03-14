@@ -6,11 +6,12 @@
  */
 
 import { execSync } from "node:child_process";
+import { AidenCliProvider } from "./aiden-cli.js";
 import { ClaudeCodeCliProvider } from "./claude-code-cli.js";
 import type { CodingAgentProvider } from "./interface.js";
 import { PTYGenericProvider } from "./pty-generic.js";
 
-export type ProviderName = "claude-code" | "codex" | "opencode" | "pi";
+export type ProviderName = "claude-code" | "aiden" | "codex" | "opencode" | "pi";
 
 /** Priority-ordered list of (providerName, binary, factory) */
 const PROVIDERS: Array<{
@@ -19,6 +20,7 @@ const PROVIDERS: Array<{
   factory: () => CodingAgentProvider;
 }> = [
   { name: "claude-code", bin: "claude", factory: () => new ClaudeCodeCliProvider() },
+  { name: "aiden", bin: "aiden", factory: () => new AidenCliProvider() },
   { name: "codex", bin: "codex", factory: () => new PTYGenericProvider("codex exec", "codex") },
   {
     name: "opencode",
