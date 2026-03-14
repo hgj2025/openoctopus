@@ -35,6 +35,7 @@ INSTALL_DIR=""
 NO_ONBOARD=0
 RESTART_ONLY=0
 NO_BUILD=0
+LOCAL_MODE=0   # 跳过 git clone/pull，直接用脚本所在目录
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -42,6 +43,7 @@ while [[ $# -gt 0 ]]; do
     --no-onboard)   NO_ONBOARD=1; shift ;;
     --restart)      RESTART_ONLY=1; shift ;;
     --no-build)     NO_BUILD=1; shift ;;
+    --local)        LOCAL_MODE=1; shift ;;
     --help|-h)
       cat <<EOF
 用法: bash install.sh [选项]
@@ -51,6 +53,7 @@ while [[ $# -gt 0 ]]; do
   --no-onboard      跳过 openclaw onboard
   --restart         仅重启 gateway 服务，不重新安装
   --no-build        跳过构建步骤（适用于已构建的场景）
+  --local           跳过 git clone/pull，使用脚本所在目录的代码
   --help            显示此帮助
 
 环境变量:
@@ -224,7 +227,12 @@ ensure_git() {
   esac
 }
 
-# ── clone / pull 仓库 ─────────────────────────────────────────────────────────
+# ── 将 https:// URL 转为 git:// URL ──────────────────────────────────────────
+to_git_protocol() {
+  echo "$1" | sed 's|^https://|git://|'
+}
+
+# ── clone / pull 仓库（https 优先，失败自动 fallback 到 git://）─────────────
 sync_repo() {
   if [ -d "${INSTALL_DIR}/.git" ]; then
     log "更新仓库 ${INSTALL_DIR}..."
@@ -232,11 +240,29 @@ sync_repo() {
     git -C "$INSTALL_DIR" pull --ff-only --quiet || {
       warn "git pull 失败（可能有本地修改），跳过更新"
     }
-  else
-    log "克隆仓库到 ${INSTALL_DIR}..."
-    mkdir -p "$(dirname "$INSTALL_DIR")"
-    git clone --depth=1 "$GIT_REPO" "$INSTALL_DIR" || die "git clone 失败"
+    return
   fi
+
+  mkdir -p "$(dirname "$INSTALL_DIR")"
+
+  # 先尝试 https://
+  log "克隆仓库到 ${INSTALL_DIR}（https）..."
+  if git clone --depth=1 "$GIT_REPO" "$INSTALL_DIR" 2>/dev/null; then
+    ok "克隆成功（https）"
+    return
+  fi
+
+  # https 失败，尝试 git://
+  local git_url
+  git_url="$(to_git_protocol "$GIT_REPO")"
+  if [ "$git_url" = "$GIT_REPO" ]; then
+    # 原本就不是 https URL，不需要 fallback
+    die "git clone 失败: ${GIT_REPO}"
+  fi
+
+  warn "https 连接失败，尝试 git:// 协议..."
+  git clone --depth=1 "$git_url" "$INSTALL_DIR" || die "git clone 失败（已尝试 https 和 git:// 协议）"
+  ok "克隆成功（git://）"
 }
 
 # ── 构建 ──────────────────────────────────────────────────────────────────────

@@ -3,8 +3,14 @@
 #
 # 用法:
 #   curl -fsSL https://raw.githubusercontent.com/hgj2025/openoctopus/main/setup.sh | bash
-#   curl -fsSL https://raw.githubusercontent.com/hgj2025/openoctopus/main/setup.sh | bash -s -- --no-onboard
-#   curl -fsSL https://raw.githubusercontent.com/hgj2025/openoctopus/main/setup.sh | bash -s -- --dir ~/mydir
+#   curl -fsSL .../setup.sh | bash -s -- --no-onboard
+#   curl -fsSL .../setup.sh | bash -s -- --dir ~/mydir
+#
+# 无法访问 GitHub 时（服务器离线/内网）：
+#   先手动传代码到服务器，再本地安装：
+#   bash setup.sh --local
+#   或
+#   bash install.sh --local
 #
 # 环境变量:
 #   OPENOCTOPUS_GIT_REPO   覆盖默认 git 仓库地址
