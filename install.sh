@@ -227,12 +227,13 @@ ensure_git() {
   esac
 }
 
-# ── 将 https:// URL 转为 git:// URL ──────────────────────────────────────────
-to_git_protocol() {
-  echo "$1" | sed 's|^https://|git://|'
+# ── 将 https://github.com/user/repo.git 转为 git@github.com:user/repo.git ───
+to_ssh_url() {
+  # https://github.com/user/repo.git  →  git@github.com:user/repo.git
+  echo "$1" | sed 's|^https://\([^/]*\)/\(.*\)|git@\1:\2|'
 }
 
-# ── clone / pull 仓库（https 优先，失败自动 fallback 到 git://）─────────────
+# ── clone / pull 仓库（https 优先，失败自动 fallback 到 SSH）────────────────
 sync_repo() {
   if [ -d "${INSTALL_DIR}/.git" ]; then
     log "更新仓库 ${INSTALL_DIR}..."
@@ -252,17 +253,17 @@ sync_repo() {
     return
   fi
 
-  # https 失败，尝试 git://
-  local git_url
-  git_url="$(to_git_protocol "$GIT_REPO")"
-  if [ "$git_url" = "$GIT_REPO" ]; then
-    # 原本就不是 https URL，不需要 fallback
+  # https 失败，转为 SSH 重试
+  local ssh_url
+  ssh_url="$(to_ssh_url "$GIT_REPO")"
+  if [ "$ssh_url" = "$GIT_REPO" ]; then
+    # 原本就不是 https URL，无法转换
     die "git clone 失败: ${GIT_REPO}"
   fi
 
-  warn "https 连接失败，尝试 git:// 协议..."
-  git clone --depth=1 "$git_url" "$INSTALL_DIR" || die "git clone 失败（已尝试 https 和 git:// 协议）"
-  ok "克隆成功（git://）"
+  warn "https 连接失败，尝试 SSH（${ssh_url}）..."
+  git clone --depth=1 "$ssh_url" "$INSTALL_DIR" || die "git clone 失败（已尝试 https 和 SSH 协议）"
+  ok "克隆成功（SSH）"
 }
 
 # ── 构建 ──────────────────────────────────────────────────────────────────────
