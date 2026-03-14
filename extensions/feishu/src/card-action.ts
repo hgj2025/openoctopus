@@ -1,6 +1,7 @@
 import type { ClawdbotConfig, RuntimeEnv } from "openclaw/plugin-sdk";
 import { resolveFeishuAccount } from "./accounts.js";
 import { handleFeishuMessage, type FeishuMessageEvent } from "./bot.js";
+import { resolveApproval } from "./coding-session/index.js";
 
 export type FeishuCardActionEvent = {
   operator: {
@@ -30,6 +31,23 @@ export async function handleFeishuCardAction(params: {
   const { cfg, event, runtime, accountId } = params;
   const account = resolveFeishuAccount({ cfg, accountId });
   const log = runtime?.log ?? console.log;
+
+  // Coding session: approve/reject button clicks bypass normal message dispatch
+  if (
+    event.action.value &&
+    typeof event.action.value === "object" &&
+    "coding_session_action" in event.action.value
+  ) {
+    const v = event.action.value as { coding_session_action: string; session_id?: string; request_id?: string };
+    const approved = v.coding_session_action === "approve";
+    // session_id is embedded in the button action value by card-renderer
+    const sessionId = typeof v.session_id === "string" ? v.session_id : "";
+    resolveApproval(sessionId, approved);
+    log(
+      `feishu[${account.accountId}]: coding session ${v.coding_session_action} from ${event.operator.open_id}`,
+    );
+    return;
+  }
 
   // Extract action value
   const actionValue = event.action.value;

@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/coding-session",
+  "version": "2026.3.13",
+  "description": "Channel-agnostic coding agent session manager (Claude Code, Codex, PTY fallback)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  }
+}

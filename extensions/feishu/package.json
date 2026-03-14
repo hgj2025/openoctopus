@@ -9,6 +9,9 @@
     "https-proxy-agent": "^7.0.6",
     "zod": "^4.3.6"
   },
+  "peerDependencies": {
+    "@openclaw/coding-session": "workspace:*"
+  },
   "openclaw": {
     "extensions": [
       "./index.ts"

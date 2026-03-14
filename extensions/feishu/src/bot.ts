@@ -35,6 +35,7 @@ import { getFeishuRuntime } from "./runtime.js";
 import { getMessageFeishu, sendMessageFeishu } from "./send.js";
 import type { FeishuMessageContext, FeishuMediaInfo, ResolvedFeishuAccount } from "./types.js";
 import type { DynamicAgentCreationConfig } from "./types.js";
+import { handleCodingSessionMessage } from "./coding-session/index.js";
 
 // --- Permission error extraction ---
 // Extract permission grant URL from Feishu API error response.
@@ -1054,6 +1055,22 @@ export async function handleFeishuMessage(params: {
       sessionKey: route.sessionKey,
       contextKey: `feishu:message:${ctx.chatId}:${ctx.messageId}`,
     });
+
+    // Coding session: check for /code trigger or active session follow-up.
+    // Runs after permission checks pass but before expensive media/context work.
+    const codingHandled = await handleCodingSessionMessage({
+      cfg,
+      chatId: ctx.chatId,
+      threadId: ctx.rootId,
+      messageId: ctx.messageId,
+      senderId: ctx.senderOpenId,
+      text: ctx.content,
+      accountId: account.accountId,
+    });
+    if (codingHandled) {
+      log(`feishu[${account.accountId}]: message handled by coding session manager`);
+      return;
+    }
 
     // Resolve media from message
     const mediaMaxBytes = (feishuCfg?.mediaMaxMb ?? 30) * 1024 * 1024; // 30MB default
