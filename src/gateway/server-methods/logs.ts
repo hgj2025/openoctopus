@@ -78,20 +78,21 @@ async function readLogSlice(params: {
   let truncated = false;
   let start = 0;
 
+  // When a cursor is provided (follow mode), read forward from the cursor
+  // position instead of jumping to the tail. This prevents losing log lines
+  // when the gap between cursor and file end exceeds maxBytes.
   if (cursor != null) {
     if (cursor > size) {
+      // File was truncated/rotated – fall back to tail
       reset = true;
       start = Math.max(0, size - maxBytes);
       truncated = start > 0;
     } else {
       start = cursor;
-      if (size - start > maxBytes) {
-        reset = true;
-        truncated = true;
-        start = Math.max(0, size - maxBytes);
-      }
+      truncated = size - start > maxBytes;
     }
   } else {
+    // Initial fetch (no cursor) – read the tail of the file
     start = Math.max(0, size - maxBytes);
     truncated = start > 0;
   }
@@ -115,7 +116,7 @@ async function readLogSlice(params: {
       prefix = prefixBuf.toString("utf8", 0, prefixRead.bytesRead);
     }
 
-    const length = Math.max(0, size - start);
+    const length = Math.min(maxBytes, Math.max(0, size - start));
     const buffer = Buffer.alloc(length);
     const readResult = await handle.read(buffer, 0, length, start);
     const text = buffer.toString("utf8", 0, readResult.bytesRead);
@@ -130,7 +131,9 @@ async function readLogSlice(params: {
       lines = lines.slice(lines.length - limit);
     }
 
-    cursor = size;
+    // Advance cursor to where we stopped reading, not the file end.
+    // This lets follow-mode clients catch up incrementally without gaps.
+    cursor = start + readResult.bytesRead;
 
     return {
       cursor,

@@ -322,7 +322,10 @@ export function registerLogsCli(program: Command) {
       if (!opts.follow) {
         return;
       }
-      await delay(interval);
+      // When truncated, immediately re-fetch to catch up without losing lines
+      if (!payload.truncated) {
+        await delay(interval);
+      }
     }
   });
 }
