@@ -5,6 +5,9 @@
 #   curl -fsSL https://raw.githubusercontent.com/hgj2025/openoctopus/main/setup.sh | bash
 #   curl -fsSL .../setup.sh | bash -s -- --no-onboard
 #   curl -fsSL .../setup.sh | bash -s -- --dir ~/mydir
+#   curl -fsSL .../setup.sh | bash -s -- --force-install   # 强制全新安装
+#
+# 已安装时自动走快速升级流程：git pull → pnpm install → build → gateway restart
 #
 # 无法访问 GitHub 时（服务器离线/内网）：
 #   先手动传代码到服务器，再本地安装：
@@ -34,6 +37,7 @@ fi
 
 log()  { printf "${CYAN}[setup]${RESET} %s\n" "$*"; }
 ok()   { printf "${GREEN}[setup]${RESET} %s\n" "$*"; }
+warn() { printf "${YELLOW}[setup]${RESET} %s\n" "$*" >&2; }
 die()  { printf "${RED}[setup] ERROR:${RESET} %s\n" "$*" >&2; exit 1; }
 
 # ── 检测下载工具 ──────────────────────────────────────────────────────────────
@@ -51,7 +55,50 @@ download() {
 cleanup() { rm -f "$TMP_SCRIPT"; }
 trap cleanup EXIT
 
+# ── 已安装检测 ──────────────────────────────────────────────────────────────────
+INSTALL_DIR="${OPENOCTOPUS_DIR:-${HOME}/openoctopus}"
+OPENCLAW_BIN="${HOME}/.local/bin/openclaw"
+
+is_installed() {
+  [ -x "$OPENCLAW_BIN" ] && [ -d "${INSTALL_DIR}/.git" ]
+}
+
+# ── 快速升级+重启 ──────────────────────────────────────────────────────────────
+quick_upgrade() {
+  printf "\n${BOLD}OpenOctopus 快速升级${RESET}\n\n"
+  ok "检测到已安装: ${INSTALL_DIR}"
+
+  log "拉取最新代码..."
+  git -C "$INSTALL_DIR" fetch --quiet
+  git -C "$INSTALL_DIR" pull --ff-only --quiet || {
+    warn "git pull 失败（可能有本地修改），尝试 reset..."
+    git -C "$INSTALL_DIR" reset --hard origin/main --quiet
+  }
+  ok "代码已更新"
+
+  log "安装依赖..."
+  (cd "$INSTALL_DIR" && pnpm install --frozen-lockfile 2>/dev/null || pnpm install)
+  ok "依赖安装完成"
+
+  log "构建项目..."
+  (cd "$INSTALL_DIR" && pnpm build) || die "构建失败"
+  ok "构建完成"
+
+  log "重启 gateway..."
+  "$OPENCLAW_BIN" gateway restart || die "重启失败，请运行: openclaw doctor"
+  ok "gateway 已重启"
+
+  echo ""
+  ok "升级完成！"
+}
+
 # ── 主流程 ────────────────────────────────────────────────────────────────────
+# 如果已安装且没有传 --force-install 参数，走快速升级+重启
+if is_installed && [[ ! " $* " =~ " --force-install " ]]; then
+  quick_upgrade
+  exit 0
+fi
+
 printf "\n${BOLD}OpenOctopus 一键安装${RESET}\n\n"
 
 log "下载安装脚本..."
@@ -60,6 +107,6 @@ chmod +x "$TMP_SCRIPT"
 ok "下载完成"
 
 log "启动安装..."
-# 透传所有参数，并注入 GIT_REPO
+# 透传所有参数（过滤掉 --force-install），并注入 GIT_REPO
 export OPENOCTOPUS_GIT_REPO="$GIT_REPO"
-bash "$TMP_SCRIPT" "$@"
+bash "$TMP_SCRIPT" "${@/--force-install/}"
