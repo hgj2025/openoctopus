@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw/tool-confirm",
+  "version": "2026.3.15",
+  "private": true,
+  "description": "High-risk tool execution confirmation via channel interaction",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}

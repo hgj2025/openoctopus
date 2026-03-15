@@ -54,6 +54,30 @@ find_node() {
 NODE=$(find_node)
 export PATH="$(dirname "$NODE"):$PATH"
 
+# ── Kill existing openclaw processes ───────────────────────────────────────────
+kill_existing() {
+  local killed=0
+
+  # Stop supervised gateway gracefully (handles launchd/systemd managed instances)
+  if command -v openclaw &>/dev/null; then
+    openclaw gateway stop 2>/dev/null && { echo "[dev.sh] 已停止 supervised gateway"; killed=1; } || true
+  fi
+
+  # Kill ALL previous dev-all.mjs launchers and their entire process trees
+  # (dev-all.mjs spawns run-node→openclaw→openclaw-gateway + ui.js→pnpm→vite)
+  local all_pids
+  all_pids=$(pgrep -f "dev-all\.mjs|openclaw-gateway|openclaw|run-node\.mjs.*gateway|vite/bin/vite|scripts/ui\.js|pnpm run dev" 2>/dev/null || true)
+  if [ -n "$all_pids" ]; then
+    echo "[dev.sh] 停止已有进程: $(echo $all_pids | tr '\n' ' ')"
+    echo "$all_pids" | xargs kill -9 2>/dev/null || true
+    killed=1
+  fi
+
+  [ "$killed" = "1" ] && sleep 1
+}
+
+kill_existing
+
 # ── Dispatch ───────────────────────────────────────────────────────────────────
 if [ "$1" = "ctl" ]; then
   shift

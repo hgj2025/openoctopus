@@ -36,9 +36,14 @@ export class AidenCliProvider implements CodingAgentProvider {
   readonly supportsToolInterception = false;
   readonly supportsFollowUp = false;
 
+  private readonly binPath: string;
   private progressHandlers: Array<(e: ProgressEvent) => void> = [];
   private completeHandlers: Array<(r: CompleteResult) => void> = [];
   private proc: ReturnType<typeof spawn> | null = null;
+
+  constructor(binPath = "aiden") {
+    this.binPath = binPath;
+  }
 
   onProgress(handler: (e: ProgressEvent) => void): void {
     this.progressHandlers.push(handler);
@@ -50,7 +55,7 @@ export class AidenCliProvider implements CodingAgentProvider {
 
   async start({ task, workdir }: StartOptions): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.proc = spawn("aiden", ["--stream-json", "--one-shot", task], {
+      this.proc = spawn(this.binPath, ["--stream-json", "--one-shot", task], {
         cwd: workdir,
         env: process.env,
       });

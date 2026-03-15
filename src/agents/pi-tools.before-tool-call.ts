@@ -10,6 +10,13 @@ export type HookContext = {
   agentId?: string;
   sessionKey?: string;
   loopDetection?: ToolLoopDetectionConfig;
+  /** Delivery context forwarded to plugin hooks (e.g. tool-confirm). */
+  deliveryContext?: {
+    channel?: string;
+    to?: string;
+    accountId?: string;
+    threadId?: string | number;
+  };
 };
 
 type HookOutcome = { blocked: true; reason: string } | { blocked: false; params: unknown };
@@ -148,6 +155,7 @@ export async function runBeforeToolCallHook(args: {
         toolName,
         agentId: args.ctx?.agentId,
         sessionKey: args.ctx?.sessionKey,
+        deliveryContext: args.ctx?.deliveryContext,
       },
     );
 

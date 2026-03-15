@@ -41,6 +41,7 @@ import { runMemoryFlushIfNeeded } from "./agent-runner-memory.js";
 import { buildReplyPayloads } from "./agent-runner-payloads.js";
 import { appendUsageLine, formatResponseUsageLine } from "./agent-runner-utils.js";
 import { createAudioAsVoiceBuffer, createBlockReplyPipeline } from "./block-reply-pipeline.js";
+import { formatContextWarning, shouldWarnContextUsage } from "./context-usage-warning.js";
 import { resolveEffectiveBlockStreamingConfig } from "./block-streaming.js";
 import { createFollowupRunner } from "./followup-runner.js";
 import { resolveOriginMessageProvider, resolveOriginMessageTo } from "./origin-routing.js";
@@ -703,9 +704,49 @@ export async function runReplyAgent(params: {
         verboseNotices.push({ text: `🧹 Auto-compaction complete${suffix}.` });
       }
     }
+    // Prepend session label when available
+    if (activeSessionEntry?.label || activeSessionEntry?.workdir) {
+      const labelParts: string[] = [];
+      if (activeSessionEntry.label) labelParts.push(activeSessionEntry.label);
+      if (activeSessionEntry.workdir) {
+        const dirName = activeSessionEntry.workdir.split("/").pop() ?? activeSessionEntry.workdir;
+        if (!activeSessionEntry.label || !activeSessionEntry.label.includes(dirName)) {
+          labelParts.push(dirName);
+        }
+      }
+      if (labelParts.length > 0) {
+        verboseNotices.unshift({ text: `[${labelParts.join(" · ")}]` });
+      }
+    }
+
     if (verboseNotices.length > 0) {
       finalPayloads = [...verboseNotices, ...finalPayloads];
     }
+
+    // Context usage warning (at most once per session)
+    if (
+      activeSessionEntry &&
+      !activeSessionEntry.contextWarningEmitted &&
+      shouldWarnContextUsage({
+        totalTokens: activeSessionEntry.totalTokens,
+        contextTokens: activeSessionEntry.contextTokens ?? contextTokensUsed,
+      })
+    ) {
+      const warning = formatContextWarning({
+        totalTokens: activeSessionEntry.totalTokens,
+        contextTokens: activeSessionEntry.contextTokens ?? contextTokensUsed,
+      });
+      finalPayloads = [...finalPayloads, { text: warning }];
+      activeSessionEntry.contextWarningEmitted = true;
+      if (sessionKey && storePath) {
+        void updateSessionStoreEntry({
+          storePath,
+          sessionKey,
+          update: async () => ({ contextWarningEmitted: true }),
+        });
+      }
+    }
+
     if (responseUsageLine) {
       finalPayloads = appendUsageLine(finalPayloads, responseUsageLine);
     }

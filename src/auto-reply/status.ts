@@ -172,6 +172,17 @@ export const formatContextUsageShort = (
   contextTokens: number | null | undefined,
 ) => `Context ${formatTokens(total, contextTokens ?? null)}`;
 
+const formatContextProgressBar = (
+  total: number | null | undefined,
+  contextTokens: number | null,
+): string | null => {
+  if (total == null || contextTokens == null || contextTokens <= 0) return null;
+  const pct = Math.min(100, Math.round((total / contextTokens) * 100));
+  const filled = Math.round(pct / 12.5);
+  const empty = 8 - filled;
+  return `[${"█".repeat(filled)}${"░".repeat(empty)}] ${pct}%`;
+};
+
 const formatQueueDetails = (queue?: QueueStatus) => {
   if (!queue) {
     return "";
@@ -487,8 +498,12 @@ export function buildStatusMessage(args: StatusArgs): string {
   const runtime = { label: resolveRuntimeLabel(args) };
 
   const updatedAt = entry?.updatedAt;
+  const sessionLabelParts: string[] = [];
+  if (entry?.label) sessionLabelParts.push(entry.label);
+  if (entry?.workdir) sessionLabelParts.push(entry.workdir);
+  const sessionLabelSuffix = sessionLabelParts.length > 0 ? ` (${sessionLabelParts.join(" · ")})` : "";
   const sessionLine = [
-    `Session: ${args.sessionKey ?? "unknown"}`,
+    `Session: ${args.sessionKey ?? "unknown"}${sessionLabelSuffix}`,
     typeof updatedAt === "number" ? `updated ${formatTimeAgo(now - updatedAt)}` : "no activity",
   ]
     .filter(Boolean)
@@ -503,8 +518,10 @@ export function buildStatusMessage(args: StatusArgs): string {
     ? (args.groupActivation ?? entry?.groupActivation ?? "mention")
     : undefined;
 
+  const contextProgressBar = formatContextProgressBar(totalTokens, contextTokens ?? null);
   const contextLine = [
     `Context: ${formatTokens(totalTokens, contextTokens ?? null)}`,
+    contextProgressBar,
     `🧹 Compactions: ${entry?.compactionCount ?? 0}`,
   ]
     .filter(Boolean)

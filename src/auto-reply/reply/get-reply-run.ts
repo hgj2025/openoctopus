@@ -14,6 +14,7 @@ import {
   resolveSessionFilePathOptions,
   type SessionEntry,
   updateSessionStore,
+  updateSessionStoreEntry,
 } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { clearCommandLane, getQueueSize } from "../../process/command-queue.js";
@@ -315,9 +316,10 @@ export async function runPreparedReply(
   }
   // When the user sends media without text, provide a minimal body so the agent
   // run proceeds and the image/document is injected by the embedded runner.
+  // Instruct the agent to acknowledge the media and ask the user's intent.
   const effectiveBaseBody = baseBodyTrimmed
     ? baseBodyForPrompt
-    : "[User sent media without caption]";
+    : "[User sent media without caption. Briefly describe what you see in the media, then ask the user what they would like you to do with it. For example: analyze, extract text, summarize, translate, write code based on it, etc.]";
   let prefixedBodyBase = await applySessionHints({
     baseBody: effectiveBaseBody,
     abortedLastRun,
@@ -508,6 +510,28 @@ export async function runPreparedReply(
       ...(isReasoningTagProvider(provider) ? { enforceFinalTag: true } : {}),
     },
   };
+
+  // Persist workdir on session entry (auto-associates working directory with session)
+  if (sessionEntry && workspaceDir && sessionEntry.workdir !== workspaceDir) {
+    sessionEntry.workdir = workspaceDir;
+    // Auto-generate label from workdir basename if none set
+    if (!sessionEntry.label) {
+      const dirName = workspaceDir.split("/").pop();
+      if (dirName) {
+        sessionEntry.label = dirName;
+      }
+    }
+    if (storePath && sessionKey) {
+      void updateSessionStoreEntry({
+        storePath,
+        sessionKey,
+        update: async () => ({
+          workdir: workspaceDir,
+          ...(sessionEntry?.label ? { label: sessionEntry.label } : {}),
+        }),
+      });
+    }
+  }
 
   return runReplyAgent({
     commandBody: prefixedCommandBody,

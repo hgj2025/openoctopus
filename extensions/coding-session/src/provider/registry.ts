@@ -17,25 +17,26 @@ export type ProviderName = "claude-code" | "aiden" | "codex" | "opencode" | "pi"
 const PROVIDERS: Array<{
   name: ProviderName;
   bin: string;
-  factory: () => CodingAgentProvider;
+  /** Factory receives the resolved absolute path to the binary */
+  factory: (binPath: string) => CodingAgentProvider;
 }> = [
-  { name: "claude-code", bin: "claude", factory: () => new ClaudeCodeCliProvider() },
-  { name: "aiden", bin: "aiden", factory: () => new AidenCliProvider() },
-  { name: "codex", bin: "codex", factory: () => new PTYGenericProvider("codex exec", "codex") },
+  { name: "claude-code", bin: "claude", factory: (p) => new ClaudeCodeCliProvider(p) },
+  { name: "aiden", bin: "aiden", factory: (p) => new AidenCliProvider(p) },
+  { name: "codex", bin: "codex", factory: (p) => new PTYGenericProvider("codex exec", "codex", p) },
   {
     name: "opencode",
     bin: "opencode",
-    factory: () => new PTYGenericProvider("opencode run", "opencode"),
+    factory: (p) => new PTYGenericProvider("opencode run", "opencode", p),
   },
-  { name: "pi", bin: "pi", factory: () => new PTYGenericProvider("pi", "pi") },
+  { name: "pi", bin: "pi", factory: (p) => new PTYGenericProvider("pi", "pi", p) },
 ];
 
-function isBinAvailable(bin: string): boolean {
+/** Returns the resolved absolute path if the binary is available, otherwise null */
+function resolveBinPath(bin: string): string | null {
   try {
-    execSync(`which ${bin}`, { stdio: "ignore" });
-    return true;
+    return execSync(`which ${bin}`, { encoding: "utf-8" }).trim() || null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -49,8 +50,9 @@ export function resolveProvider(preference?: ProviderName | string): CodingAgent
     : PROVIDERS;
 
   for (const p of candidates) {
-    if (isBinAvailable(p.bin)) {
-      return p.factory();
+    const binPath = resolveBinPath(p.bin);
+    if (binPath) {
+      return p.factory(binPath);
     }
   }
 

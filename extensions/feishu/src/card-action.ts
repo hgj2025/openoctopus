@@ -1,4 +1,5 @@
 import type { ClawdbotConfig, RuntimeEnv } from "openclaw/plugin-sdk";
+import { resolveConfirmation } from "../../../src/agents/tool-confirmation-bus.js";
 import { resolveFeishuAccount } from "./accounts.js";
 import { handleFeishuMessage, type FeishuMessageEvent } from "./bot.js";
 import { resolveApproval } from "./coding-session/index.js";
@@ -45,6 +46,22 @@ export async function handleFeishuCardAction(params: {
     resolveApproval(sessionId, approved);
     log(
       `feishu[${account.accountId}]: coding session ${v.coding_session_action} from ${event.operator.open_id}`,
+    );
+    return;
+  }
+
+  // Tool confirmation: approve/reject button clicks for high-risk tool execution
+  if (
+    event.action.value &&
+    typeof event.action.value === "object" &&
+    "tool_confirm_action" in event.action.value
+  ) {
+    const v = event.action.value as { tool_confirm_action: string; confirm_id?: string };
+    const approved = v.tool_confirm_action === "approve";
+    const confirmId = typeof v.confirm_id === "string" ? v.confirm_id : "";
+    resolveConfirmation(confirmId, approved);
+    log(
+      `feishu[${account.accountId}]: tool confirm ${v.tool_confirm_action} from ${event.operator.open_id} confirm_id=${confirmId}`,
     );
     return;
   }

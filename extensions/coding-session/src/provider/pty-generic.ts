@@ -36,10 +36,12 @@ export class PTYGenericProvider implements CodingAgentProvider {
   /**
    * @param command  Full shell command to run, e.g. "codex exec" or "opencode run"
    * @param name     Display name for this provider
+   * @param binPath  Resolved absolute path to the binary (overrides command's first token)
    */
   constructor(
     private readonly command: string,
     name?: string,
+    private readonly binPath?: string,
   ) {
     this.name = name ?? command.split(" ")[0] ?? command;
   }
@@ -59,7 +61,7 @@ export class PTYGenericProvider implements CodingAgentProvider {
       let fallbackProc: ReturnType<typeof spawn> | null = null;
 
       const parts = [...this.command.split(" "), task];
-      const bin = parts[0]!;
+      const bin = this.binPath ?? parts[0]!;
       const args = parts.slice(1);
 
       type NodePtyModule = {

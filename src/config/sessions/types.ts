@@ -150,6 +150,10 @@ export type SessionEntry = {
   claudeCliSessionId?: string;
   label?: string;
   displayName?: string;
+  /** Working directory associated with this session. */
+  workdir?: string;
+  /** True after a context usage warning has been emitted (at most once per session). */
+  contextWarningEmitted?: boolean;
   channel?: string;
   groupId?: string;
   subject?: string;

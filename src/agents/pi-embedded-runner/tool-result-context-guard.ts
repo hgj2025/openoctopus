@@ -270,16 +270,23 @@ function enforceToolResultContextBudgetInPlace(params: {
   messages: AgentMessage[];
   contextBudgetChars: number;
   maxSingleToolResultChars: number;
+  onTruncate?: (info: { index: number; beforeChars: number; afterChars: number }) => void;
 }): void {
-  const { messages, contextBudgetChars, maxSingleToolResultChars } = params;
+  const { messages, contextBudgetChars, maxSingleToolResultChars, onTruncate } = params;
 
   // Ensure each tool result has an upper bound before considering total context usage.
-  for (const message of messages) {
+  for (let i = 0; i < messages.length; i++) {
+    const message = messages[i];
     if (!isToolResultMessage(message)) {
       continue;
     }
+    const beforeChars = estimateMessageChars(message);
     const truncated = truncateToolResultToChars(message, maxSingleToolResultChars);
-    applyMessageMutationInPlace(message, truncated);
+    if (truncated !== message) {
+      applyMessageMutationInPlace(message, truncated);
+      const afterChars = estimateMessageChars(message);
+      onTruncate?.({ index: i, beforeChars, afterChars });
+    }
   }
 
   let currentChars = estimateContextChars(messages);
@@ -297,6 +304,7 @@ function enforceToolResultContextBudgetInPlace(params: {
 export function installToolResultContextGuard(params: {
   agent: GuardableAgent;
   contextWindowTokens: number;
+  log?: { warn: (msg: string) => void };
 }): () => void {
   const contextWindowTokens = Math.max(1, Math.floor(params.contextWindowTokens));
   const contextBudgetChars = Math.max(
@@ -325,6 +333,15 @@ export function installToolResultContextGuard(params: {
       messages: contextMessages,
       contextBudgetChars,
       maxSingleToolResultChars,
+      onTruncate: params.log
+        ? ({ index, beforeChars, afterChars }) => {
+            params.log!.warn(
+              `[context-guard] truncated tool result: index=${index} ` +
+                `before=${beforeChars}chars after=${afterChars}chars ` +
+                `(~${Math.ceil(beforeChars / 4)} → ~${Math.ceil(afterChars / 4)} tok)`,
+            );
+          }
+        : undefined,
     });
 
     return contextMessages;

@@ -475,6 +475,13 @@ export type PluginHookToolContext = {
   agentId?: string;
   sessionKey?: string;
   toolName: string;
+  /** Delivery context for the originating channel (used by tool-confirm extension). */
+  deliveryContext?: {
+    channel?: string;
+    to?: string;
+    accountId?: string;
+    threadId?: string | number;
+  };
 };
 
 // before_tool_call hook

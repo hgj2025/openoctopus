@@ -47,13 +47,20 @@ export function loadSettings(): UiSettings {
       return defaults;
     }
     const parsed = JSON.parse(raw) as Partial<UiSettings>;
+    // When env vars are explicitly set, they always win over localStorage
+    // (prevents stale localStorage values from causing "offline" status).
+    const envGatewayUrl = (import.meta.env.VITE_GATEWAY_URL as string | undefined)?.trim();
+    const envToken = (import.meta.env.VITE_GATEWAY_TOKEN as string | undefined)?.trim();
+
     return {
-      gatewayUrl:
-        typeof parsed.gatewayUrl === "string" && parsed.gatewayUrl.trim()
+      gatewayUrl: envGatewayUrl
+        ? defaults.gatewayUrl
+        : typeof parsed.gatewayUrl === "string" && parsed.gatewayUrl.trim()
           ? parsed.gatewayUrl.trim()
           : defaults.gatewayUrl,
-      token:
-        typeof parsed.token === "string" && parsed.token.trim()
+      token: envToken
+        ? defaults.token
+        : typeof parsed.token === "string" && parsed.token.trim()
           ? parsed.token
           : defaults.token,
       sessionKey:

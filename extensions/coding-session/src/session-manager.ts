@@ -56,8 +56,11 @@ export async function startCodingSession(options: {
   workdir: string;
   provider: CodingAgentProvider;
   channel: ChannelAdapter;
+  /** Optional logger for session errors (defaults to console.error) */
+  log?: (level: "info" | "warn" | "error", msg: string) => void;
 }): Promise<CodingSession> {
   const { chatId, threadId, task, workdir, provider, channel } = options;
+  const log = options.log ?? ((_level, msg) => console.error(msg));
 
   const key = sessionKey(chatId, threadId);
   const existing = sessions.get(key);
@@ -108,7 +111,7 @@ export async function startCodingSession(options: {
       pendingState = null;
       if (!s) return;
       channel.updateSessionCard(cardId, s).catch((err: unknown) => {
-        console.error(`[coding-session] updateSessionCard failed: ${String(err)}`);
+        log("error", `[coding-session] updateSessionCard failed: ${String(err)}`);
       });
     }, PROGRESS_DEBOUNCE_MS);
   }
@@ -177,7 +180,7 @@ export async function startCodingSession(options: {
       progressLog: [...progressLog],
       summary: result.summary ?? result.error ?? (result.success ? "完成。" : "失败。"),
     }).catch((err: unknown) => {
-      console.error(`[coding-session] final updateSessionCard failed: ${String(err)}`);
+      log("error", `[coding-session] final updateSessionCard failed: ${String(err)}`);
     });
   });
 
@@ -185,6 +188,7 @@ export async function startCodingSession(options: {
   provider.start({ task, workdir }).catch((err: unknown) => {
     session.status = "error";
     sessions.delete(key);
+    log("error", `[coding-session] provider.start failed: ${String(err)}`);
     channel.updateSessionCard(cardId, {
       status: "error",
       providerName: provider.name,
@@ -192,7 +196,7 @@ export async function startCodingSession(options: {
       progressLog: [...progressLog],
       summary: `Fatal error: ${String(err)}`,
     }).catch((e: unknown) => {
-      console.error(`[coding-session] error card update failed: ${String(e)}`);
+      log("error", `[coding-session] error card update failed: ${String(e)}`);
     });
   });
 

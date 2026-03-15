@@ -17,6 +17,7 @@ import {
   isToolResultError,
   sanitizeToolResult,
 } from "./pi-embedded-subscribe.tools.js";
+import { HARD_MAX_TOOL_RESULT_CHARS } from "./pi-embedded-runner/tool-result-truncation.js";
 import { inferToolMetaFromArgs } from "./pi-embedded-utils.js";
 import { buildToolMutationState, isSameToolMutationAction } from "./tool-mutation.js";
 import { normalizeToolName } from "./tool-policy.js";
@@ -30,6 +31,16 @@ function isCronAddAction(args: unknown): boolean {
   }
   const action = (args as Record<string, unknown>).action;
   return typeof action === "string" && action.trim().toLowerCase() === "add";
+}
+
+function estimateArgsChars(args: unknown): number {
+  if (!args) return 0;
+  if (typeof args === "string") return args.length;
+  try {
+    return JSON.stringify(args).length;
+  } catch {
+    return 0;
+  }
 }
 
 function buildToolCallSummary(toolName: string, args: unknown, meta?: string): ToolCallSummary {
@@ -405,8 +416,35 @@ export async function handleToolExecutionEnd(
     },
   });
 
+  // --- Change 2: Pre-check tool result size ---
+  // Estimate result size immediately so oversized results are flagged before
+  // the next LLM call (the actual truncation happens in transformContext via
+  // installToolResultContextGuard, but early detection provides visibility).
+  const resultText = extractToolResultText(sanitizedResult);
+  const resultChars = resultText?.length ?? 0;
+  const inputChars = startData?.args ? estimateArgsChars(startData.args) : 0;
+  const estimatedResultTokens = resultChars > 0 ? Math.ceil(resultChars / 4) : 0;
+  // Use HARD_MAX_TOOL_RESULT_CHARS as the standalone limit when context window
+  // is not known at this layer.  The transformContext guard will enforce the
+  // precise per-model budget later.
+  const oversized = resultChars > HARD_MAX_TOOL_RESULT_CHARS;
+  if (oversized) {
+    ctx.log.warn(
+      `[tool-precheck] oversized result: tool=${toolName} callId=${toolCallId} ` +
+        `resultChars=${resultChars} (~${estimatedResultTokens} tok) ` +
+        `limit=${HARD_MAX_TOOL_RESULT_CHARS} — will be truncated before next LLM call`,
+    );
+  }
+
+  // --- Change 3: Structured audit log ---
+  const durationMs = startData?.startTime != null ? Date.now() - startData.startTime : undefined;
   ctx.log.debug(
-    `embedded run tool end: runId=${ctx.params.runId} tool=${toolName} toolCallId=${toolCallId}`,
+    `[tool-audit] tool=${toolName} callId=${toolCallId}` +
+      (durationMs != null ? ` duration=${durationMs}ms` : "") +
+      ` input=${inputChars}chars result=${resultChars}chars` +
+      ` (~${estimatedResultTokens} tok)` +
+      ` error=${isToolError}` +
+      ` oversized=${oversized}`,
   );
 
   emitToolResultOutput({ ctx, toolName, meta, isToolError, result, sanitizedResult });
@@ -414,7 +452,6 @@ export async function handleToolExecutionEnd(
   // Run after_tool_call plugin hook (fire-and-forget)
   const hookRunnerAfter = ctx.hookRunner ?? getGlobalHookRunner();
   if (hookRunnerAfter?.hasHooks("after_tool_call")) {
-    const durationMs = startData?.startTime != null ? Date.now() - startData.startTime : undefined;
     const toolArgs = startData?.args;
     const hookEvent: PluginHookAfterToolCallEvent = {
       toolName,

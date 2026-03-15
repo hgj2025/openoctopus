@@ -787,6 +787,7 @@ export async function runEmbeddedAttempt(
             params.model.contextWindow ?? params.model.maxTokens ?? DEFAULT_CONTEXT_TOKENS,
           ),
         ),
+        log,
       });
       const cacheTrace = createCacheTrace({
         cfg: params.config,
