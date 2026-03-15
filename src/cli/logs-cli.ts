@@ -262,7 +262,9 @@ export function registerLogsCli(program: Command) {
             }
           }
         }
-        if (payload.truncated) {
+        // In follow mode, truncation just means more data to catch up on –
+        // the client will loop immediately, so suppress the warning.
+        if (payload.truncated && !opts.follow) {
           if (
             !emitJsonLine({
               type: "notice",
@@ -302,7 +304,7 @@ export function registerLogsCli(program: Command) {
             return;
           }
         }
-        if (payload.truncated) {
+        if (payload.truncated && !opts.follow) {
           if (!errorLine("Log tail truncated (increase --max-bytes).")) {
             return;
           }
