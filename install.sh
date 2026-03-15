@@ -11,8 +11,8 @@
 set -euo pipefail
 
 # ── 配置 ──────────────────────────────────────────────────────────────────────
-# 修改这里指向你自己的 git 仓库
-GIT_REPO="${OPENOCTOPUS_GIT_REPO:-https://github.com/hgj2025/openoctopus.git}"
+# 修改这里指向你自己的 git 仓库（SSH 优先，HTTPS 作为 fallback）
+GIT_REPO="${OPENOCTOPUS_GIT_REPO:-git@github.com:hgj2025/openoctopus.git}"
 DEFAULT_DIR="${HOME}/openoctopus"
 BIN_DIR="${HOME}/.local/bin"
 BIN_NAME="openclaw"
@@ -227,13 +227,17 @@ ensure_git() {
   esac
 }
 
-# ── 将 https://github.com/user/repo.git 转为 git@github.com:user/repo.git ───
+# ── URL 转换工具 ─────────────────────────────────────────────────────────────
+# git@github.com:user/repo.git  →  https://github.com/user/repo.git
+to_https_url() {
+  echo "$1" | sed 's|^git@\([^:]*\):\(.*\)|https://\1/\2|'
+}
+# https://github.com/user/repo.git  →  git@github.com:user/repo.git
 to_ssh_url() {
-  # https://github.com/user/repo.git  →  git@github.com:user/repo.git
   echo "$1" | sed 's|^https://\([^/]*\)/\(.*\)|git@\1:\2|'
 }
 
-# ── clone / pull 仓库（https 优先，失败自动 fallback 到 SSH）────────────────
+# ── clone / pull 仓库（SSH 优先，失败自动 fallback 到 HTTPS）────────────────
 sync_repo() {
   if [ -d "${INSTALL_DIR}/.git" ]; then
     log "更新仓库 ${INSTALL_DIR}..."
@@ -246,24 +250,24 @@ sync_repo() {
 
   mkdir -p "$(dirname "$INSTALL_DIR")"
 
-  # 先尝试 https://
-  log "克隆仓库到 ${INSTALL_DIR}（https）..."
+  # 先尝试 SSH
+  log "克隆仓库到 ${INSTALL_DIR}（SSH）..."
   if git clone --depth=1 "$GIT_REPO" "$INSTALL_DIR" 2>/dev/null; then
-    ok "克隆成功（https）"
+    ok "克隆成功（SSH）"
     return
   fi
 
-  # https 失败，转为 SSH 重试
-  local ssh_url
-  ssh_url="$(to_ssh_url "$GIT_REPO")"
-  if [ "$ssh_url" = "$GIT_REPO" ]; then
-    # 原本就不是 https URL，无法转换
+  # SSH 失败，转为 HTTPS 重试
+  local https_url
+  https_url="$(to_https_url "$GIT_REPO")"
+  if [ "$https_url" = "$GIT_REPO" ]; then
+    # 原本就不是 SSH URL，无法转换
     die "git clone 失败: ${GIT_REPO}"
   fi
 
-  warn "https 连接失败，尝试 SSH（${ssh_url}）..."
-  git clone --depth=1 "$ssh_url" "$INSTALL_DIR" || die "git clone 失败（已尝试 https 和 SSH 协议）"
-  ok "克隆成功（SSH）"
+  warn "SSH 连接失败，尝试 HTTPS（${https_url}）..."
+  git clone --depth=1 "$https_url" "$INSTALL_DIR" || die "git clone 失败（已尝试 SSH 和 HTTPS 协议）"
+  ok "克隆成功（HTTPS）"
 }
 
 # ── 构建 ──────────────────────────────────────────────────────────────────────

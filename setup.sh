@@ -22,7 +22,7 @@
 set -euo pipefail
 
 # ── 配置（与 install.sh 保持一致）────────────────────────────────────────────
-GIT_REPO="${OPENOCTOPUS_GIT_REPO:-https://github.com/hgj2025/openoctopus.git}"
+GIT_REPO="${OPENOCTOPUS_GIT_REPO:-git@github.com:hgj2025/openoctopus.git}"
 RAW_BASE="${OPENOCTOPUS_RAW_BASE:-https://raw.githubusercontent.com/hgj2025/openoctopus/main}"
 INSTALL_SCRIPT_URL="${RAW_BASE}/install.sh"
 TMP_SCRIPT="$(mktemp /tmp/openoctopus-install-XXXXXX.sh)"
