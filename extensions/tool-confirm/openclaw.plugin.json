@@ -1,0 +1,28 @@
+{
+  "id": "tool-confirm",
+  "name": "Tool Confirm",
+  "description": "High-risk tool execution confirmation via channel interaction.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": false
+      },
+      "tools": {
+        "type": "array",
+        "items": { "type": "string" },
+        "default": ["exec", "bash", "write", "edit", "apply_patch"]
+      },
+      "timeoutMs": {
+        "type": "number",
+        "default": 180000
+      },
+      "autoApproveOnTimeout": {
+        "type": "boolean",
+        "default": true
+      }
+    }
+  }
+}
