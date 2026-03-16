@@ -165,6 +165,8 @@ const FeishuSharedConfigShape = {
   reactionNotifications: ReactionNotificationModeSchema,
   typingIndicator: z.boolean().optional(),
   resolveSenderNames: z.boolean().optional(),
+  /** Send a startup notification to this user/chat after connection is established (open_id or chat_id) */
+  startupNotify: z.string().optional(),
 };
 
 /**

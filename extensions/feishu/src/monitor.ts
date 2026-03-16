@@ -12,7 +12,7 @@ import { handleFeishuMessage, type FeishuMessageEvent, type FeishuBotAddedEvent 
 import { handleFeishuCardAction, type FeishuCardActionEvent } from "./card-action.js";
 import { createFeishuWSClient, createEventDispatcher } from "./client.js";
 import { probeFeishu } from "./probe.js";
-import { getMessageFeishu } from "./send.js";
+import { getMessageFeishu, sendMessageFeishu } from "./send.js";
 import type { ResolvedFeishuAccount } from "./types.js";
 
 export type MonitorFeishuOpts = {
@@ -417,6 +417,30 @@ async function monitorSingleAccount(params: MonitorAccountParams): Promise<void>
   return monitorWebSocket({ params, accountId, eventDispatcher });
 }
 
+async function sendStartupNotification(params: MonitorAccountParams): Promise<void> {
+  const { cfg, account, runtime } = params;
+  const { accountId } = account;
+  const log = runtime?.log ?? console.log;
+  const error = runtime?.error ?? console.error;
+  const target = account.config.startupNotify?.trim();
+  if (!target) {
+    return;
+  }
+  try {
+    const mode = account.config.connectionMode ?? "websocket";
+    const botName = account.name ?? accountId;
+    await sendMessageFeishu({
+      cfg,
+      to: target,
+      text: `✅ OpenClaw Feishu bot [${botName}] started (${mode} mode)`,
+      accountId,
+    });
+    log(`feishu[${accountId}]: startup notification sent to ${target}`);
+  } catch (err) {
+    error(`feishu[${accountId}]: startup notification failed: ${String(err)}`);
+  }
+}
+
 type ConnectionParams = {
   params: MonitorAccountParams;
   accountId: string;
@@ -460,6 +484,7 @@ async function monitorWebSocket({
     try {
       wsClient.start({ eventDispatcher });
       log(`feishu[${accountId}]: WebSocket client started`);
+      void sendStartupNotification(params);
     } catch (err) {
       cleanup();
       abortSignal?.removeEventListener("abort", handleAbort);
@@ -546,6 +571,7 @@ async function monitorWebhook({
 
     server.listen(port, host, () => {
       log(`feishu[${accountId}]: Webhook server listening on ${host}:${port}`);
+      void sendStartupNotification(params);
     });
 
     server.on("error", (err) => {
